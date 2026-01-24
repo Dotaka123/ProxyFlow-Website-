@@ -328,7 +328,9 @@ let prices = {};
 /* ================= UI ================= */
 document.getElementById('userEmail').textContent = user.email || '';
 document.getElementById('headerBalance').textContent = '$' + (user.balance || 0).toFixed(2);
-document.getElementById('balance').textContent = '$' + (user.balance || 0).toFixed(2);
+// Après achat
+document.getElementById('balance').textContent = '$' + data.userBalance.toFixed(2);
+
 
 function logout() {
     localStorage.clear();
