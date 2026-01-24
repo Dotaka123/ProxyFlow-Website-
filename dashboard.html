@@ -499,7 +499,7 @@ document.getElementById('buyProxyForm').addEventListener('submit', async (e) => 
 
     } catch (error) {
         document.getElementById('buyAlert').innerHTML = 
-            `<div class="alert alert-error">❌ ${error.message}</div>`;
+            `<div class="alert alert-error">❌Solde insuffisant</div>`;
     } finally {
         buyBtn.disabled = false;
         buyBtn.textContent = 'Acheter le Proxy';
