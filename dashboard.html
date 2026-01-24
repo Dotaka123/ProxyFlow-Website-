@@ -327,9 +327,9 @@ let prices = {};
 
 /* ================= UI ================= */
 document.getElementById('userEmail').textContent = user.email || '';
-// Mettre à jour le solde utilisateur après achat
-document.getElementById('headerBalance').textContent = '$' + result.userBalance.toFixed(2);
-document.getElementById('balance').textContent = '$' + result.userBalance.toFixed(2);
+document.getElementById('headerBalance').textContent = '$' + (user.balance || 0).toFixed(2);
+document.getElementById('balance').textContent = '$' + (user.balance || 0).toFixed(2);
+
 
 
 function logout() {
