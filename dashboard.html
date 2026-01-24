@@ -315,288 +315,181 @@
     </div>
 
     <script>
-        // ⚠️ CHANGE CETTE URL PAR TON BACKEND DÉPLOYÉ!
-        const API_URL = 'https://adminpanel-fj5l.onrender.com';
+/* ================= CONFIG ================= */
+const API_URL = 'https://adminpanel-fj5l.onrender.com';
 
-        // Vérifier si l'utilisateur est connecté
-        const token = localStorage.getItem('token');
-        if (!token) {
-            window.location.href = 'login.html';
+/* ================= AUTH ================= */
+const token = localStorage.getItem('token');
+if (!token) window.location.href = 'login.html';
+
+let user = JSON.parse(localStorage.getItem('user') || '{}');
+let prices = {};
+
+/* ================= UI ================= */
+document.getElementById('userEmail').textContent = user.email || '';
+document.getElementById('headerBalance').textContent = '$' + (user.balance || 0).toFixed(2);
+document.getElementById('balance').textContent = '$' + (user.balance || 0).toFixed(2);
+
+function logout() {
+    localStorage.clear();
+    window.location.href = 'login.html';
+}
+
+/* ================= API ================= */
+async function apiCall(endpoint, options = {}) {
+    const res = await fetch(API_URL + endpoint, {
+        ...options,
+        headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+            ...options.headers
         }
+    });
 
-        let user = JSON.parse(localStorage.getItem('user') || '{}');
-        let prices = {};
+    if (!res.ok) {
+        if (res.status === 401) logout();
+        const err = await res.json();
+        throw new Error(err.message || 'Erreur API');
+    }
+    return res.json();
+}
 
-        // Afficher email et balance
-        document.getElementById('userEmail').textContent = user.email || '';
-        document.getElementById('headerBalance').textContent = '$' + (user.balance || 0).toFixed(2);
-        document.getElementById('balance').textContent = '$' + (user.balance || 0).toFixed(2);
+/* ================= PRICES ================= */
+async function loadPrices() {
+    const res = await fetch(API_URL + '/api/prices');
+    prices = await res.json();
+}
 
-        // Fonction de déconnexion
-        function logout() {
-            localStorage.clear();
-            window.location.href = 'login.html';
-        }
+/* ================= COUNTRIES ================= */
+async function loadCountries(pkgId) {
+    const countries = await apiCall(`/api/countries?pkg_id=${pkgId}`);
+    const select = document.getElementById('country');
 
-        // Fonction pour faire des requêtes API
-        async function apiCall(endpoint, options = {}) {
-            const response = await fetch(`${API_URL}${endpoint}`, {
-                ...options,
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json',
-                    ...options.headers
-                }
-            });
+    select.innerHTML = '<option value="">Sélectionnez un pays</option>';
+    countries.forEach(c => {
+        select.innerHTML += `
+            <option value="${c.id}">
+                ${c.country_name}
+            </option>
+        `;
+    });
+    select.disabled = false;
+}
 
-            if (!response.ok) {
-                if (response.status === 401) {
-                    logout();
-                }
-                const data = await response.json();
-                throw new Error(data.error || 'Erreur API');
-            }
+/* ================= PARENT PROXIES ================= */
+async function loadParentProxies(pkgId, countryId) {
+    let url = `/api/parent-proxies?pkg_id=${pkgId}`;
+    if (countryId) url += `&country_id=${countryId}`;
 
-            return await response.json();
-        }
+    const proxies = await apiCall(url);
+    const select = document.getElementById('parentProxy');
 
-        // Charger les prix
-        async function loadPrices() {
-            try {
-                const res = await fetch(`${API_URL}/api/prices`);
-                prices = await res.json();
-            } catch (error) {
-                console.error('Erreur prix:', error);
-            }
-        }
+    select.innerHTML = '<option value="">Sélectionnez un proxy</option>';
+    proxies.forEach(p => {
+        select.innerHTML += `
+            <option value="${p.id}">
+                ${p.technology} | HTTP:${p.http_port} | SOCKS:${p.socks_port} | Usage:${p.usage}%
+            </option>
+        `;
+    });
 
-        // Charger les pays
-        async function loadCountries(packageId) {
-            try {
-                const countries = await apiCall(`/api/countries?pkg_id=${packageId}`);
-                const select = document.getElementById('country');
-                select.innerHTML = '<option value="">Sélectionnez un pays</option>';
-                countries.forEach(c => {
-                    select.innerHTML += `<option value="${c.id}">${c.name}</option>`;
-                });
-                select.disabled = false;
-            } catch (error) {
-                console.error('Erreur pays:', error);
-            }
-        }
+    select.disabled = false;
+    document.getElementById('buyBtn').disabled = false;
+}
 
-        // Charger les proxies parents
-        async function loadParentProxies(packageId, countryId) {
-            try {
-                let url = `/api/parent-proxies?pkg_id=${packageId}`;
-                if (countryId) url += `&country_id=${countryId}`;
-                
-                const proxies = await apiCall(url);
-                const select = document.getElementById('parentProxy');
-                select.innerHTML = '<option value="">Sélectionnez un proxy</option>';
-                
-                proxies.forEach(p => {
-                    select.innerHTML += `<option value="${p.id}">${p.host || p.ip}:${p.port} - ${p.location || 'N/A'}</option>`;
-                });
-                select.disabled = false;
-                document.getElementById('buyBtn').disabled = false;
-            } catch (error) {
-                console.error('Erreur proxies:', error);
-            }
-        }
+/* ================= EVENTS ================= */
+document.getElementById('packageType').addEventListener('change', async e => {
+    const pkgId = e.target.value;
+    const durationSelect = document.getElementById('duration');
+    if (!pkgId) return durationSelect.disabled = true;
 
-        // Gestion du changement de package
-        document.getElementById('packageType').addEventListener('change', async (e) => {
-            const packageId = e.target.value;
-            const durationSelect = document.getElementById('duration');
-            
-            if (!packageId) {
-                durationSelect.disabled = true;
-                return;
-            }
+    const type = pkgId === '1' ? 'golden' : 'silver';
+    const list = prices[type]?.prices || [];
 
-            const packageType = packageId === '1' ? 'golden' : 'silver';
-            const packagePrices = prices[packageType]?.prices || [];
+    durationSelect.innerHTML = '<option value="">Durée</option>';
+    list.forEach(p => {
+        durationSelect.innerHTML += `
+            <option value="${p.duration}">
+                ${p.label} - $${p.price}
+            </option>
+        `;
+    });
 
-            durationSelect.innerHTML = '<option value="">Sélectionnez une durée</option>';
-            packagePrices.forEach(p => {
-                durationSelect.innerHTML += `<option value="${p.duration}">${p.label} - $${p.price}</option>`;
-            });
-            durationSelect.disabled = false;
+    durationSelect.disabled = false;
+    await loadCountries(pkgId);
+});
 
-            await loadCountries(packageId);
+document.getElementById('country').addEventListener('change', async e => {
+    const countryId = e.target.value;
+    const pkgId = document.getElementById('packageType').value;
+    if (countryId && pkgId) await loadParentProxies(pkgId, countryId);
+});
+
+document.getElementById('duration').addEventListener('change', e => {
+    const d = parseFloat(e.target.value);
+    const pkgId = document.getElementById('packageType').value;
+    const type = pkgId === '1' ? 'golden' : 'silver';
+
+    const price = prices[type]?.prices.find(p => p.duration === d);
+    if (price) {
+        document.getElementById('priceInfo').style.display = 'block';
+        document.getElementById('priceAmount').textContent = price.price.toFixed(2);
+    }
+});
+
+/* ================= BUY ================= */
+document.getElementById('buyProxyForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    const btn = document.getElementById('buyBtn');
+    btn.disabled = true;
+    btn.textContent = 'Achat...';
+
+    try {
+        const data = {
+            parent_proxy_id: document.getElementById('parentProxy').value,
+            package_id: document.getElementById('packageType').value,
+            protocol: document.getElementById('protocol').value,
+            duration: document.getElementById('duration').value,
+            username: document.getElementById('username').value || undefined,
+            password: document.getElementById('password').value || undefined
+        };
+
+        const res = await apiCall('/api/create-proxy', {
+            method: 'POST',
+            body: JSON.stringify(data)
         });
 
-        // Gestion du changement de durée
-        document.getElementById('duration').addEventListener('change', (e) => {
-            const duration = parseFloat(e.target.value);
-            const packageId = document.getElementById('packageType').value;
-            
-            if (!duration || !packageId) return;
+        user.balance = res.newBalance;
+        localStorage.setItem('user', JSON.stringify(user));
+        document.getElementById('headerBalance').textContent = '$' + user.balance.toFixed(2);
+        document.getElementById('balance').textContent = '$' + user.balance.toFixed(2);
 
-            const packageType = packageId === '1' ? 'golden' : 'silver';
-            const priceObj = prices[packageType]?.prices.find(p => p.duration === duration);
-            
-            if (priceObj) {
-                document.getElementById('priceInfo').style.display = 'block';
-                document.getElementById('priceAmount').textContent = priceObj.price.toFixed(2);
-            }
-        });
+        document.getElementById('buyAlert').innerHTML =
+            '<div class="alert alert-success">✅ Proxy acheté avec succès</div>';
 
-        // Gestion du changement de pays
-        document.getElementById('country').addEventListener('change', async (e) => {
-            const countryId = e.target.value;
-            const packageId = document.getElementById('packageType').value;
-            
-            if (countryId && packageId) {
-                await loadParentProxies(packageId, countryId);
-            }
-        });
+        document.getElementById('buyProxyForm').reset();
+        document.getElementById('priceInfo').style.display = 'none';
 
-        // Acheter un proxy
-        document.getElementById('buyProxyForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            
-            const buyBtn = document.getElementById('buyBtn');
-            buyBtn.disabled = true;
-            buyBtn.textContent = 'Achat en cours...';
+        loadMyProxies();
+        loadTransactions();
 
-            try {
-                const proxyData = {
-                    parent_proxy_id: document.getElementById('parentProxy').value,
-                    package_id: document.getElementById('packageType').value,
-                    protocol: document.getElementById('protocol').value,
-                    duration: document.getElementById('duration').value,
-                    username: document.getElementById('username').value || undefined,
-                    password: document.getElementById('password').value || undefined
-                };
+    } catch (err) {
+        document.getElementById('buyAlert').innerHTML =
+            `<div class="alert alert-error">❌ ${err.message}</div>`;
+    } finally {
+        btn.disabled = false;
+        btn.textContent = 'Acheter le Proxy';
+    }
+});
 
-                const result = await apiCall('/api/create-proxy', {
-                    method: 'POST',
-                    body: JSON.stringify(proxyData)
-                });
-
-                // Mettre à jour le solde
-                user.balance = result.newBalance;
-                localStorage.setItem('user', JSON.stringify(user));
-                document.getElementById('headerBalance').textContent = '$' + user.balance.toFixed(2);
-                document.getElementById('balance').textContent = '$' + user.balance.toFixed(2);
-
-                // Afficher succès
-                document.getElementById('buyAlert').innerHTML = 
-                    '<div class="alert alert-success">✅ Proxy acheté avec succès! Voir ci-dessous.</div>';
-
-                // Reset form
-                document.getElementById('buyProxyForm').reset();
-                document.getElementById('priceInfo').style.display = 'none';
-
-                // Recharger les proxies
-                await loadMyProxies();
-                await loadTransactions();
-
-                setTimeout(() => {
-                    document.getElementById('buyAlert').innerHTML = '';
-                }, 5000);
-
-            } catch (error) {
-                document.getElementById('buyAlert').innerHTML = 
-                    `<div class="alert alert-error">❌ ${error.message}</div>`;
-            } finally {
-                buyBtn.disabled = false;
-                buyBtn.textContent = 'Acheter le Proxy';
-            }
-        });
-
-        // Copier dans le presse-papier
-        function copyToClipboard(text) {
-            navigator.clipboard.writeText(text).then(() => {
-                alert('✅ Copié dans le presse-papier!');
-            });
-        }
-
-        // Charger mes proxies
-        async function loadMyProxies() {
-            try {
-                const proxies = await apiCall('/api/my-proxies');
-                const div = document.getElementById('myProxies');
-                
-                if (proxies.length === 0) {
-                    div.innerHTML = '<div class="empty">Aucun proxy acheté</div>';
-                } else {
-                    div.innerHTML = '<div class="proxy-list">' + 
-                        proxies.map(p => {
-                            const credentials = `${p.username}:${p.password}@${p.host}:${p.port}`;
-                            return `
-                                <div class="proxy-item">
-                                    <strong>Type:</strong> ${p.packageType || 'N/A'} | 
-                                    <strong>Protocol:</strong> ${p.protocol || 'N/A'} | 
-                                    <strong>Prix:</strong> $${p.price?.toFixed(2) || '0.00'}<br>
-                                    <div class="proxy-credentials">
-                                        ${credentials}
-                                        <button class="copy-btn" onclick="copyToClipboard('${credentials}')">📋 Copier</button>
-                                    </div>
-                                    <strong>Expire:</strong> ${p.expiresAt ? new Date(p.expiresAt).toLocaleString('fr-FR') : 'N/A'} | 
-                                    <strong>Acheté:</strong> ${new Date(p.createdAt).toLocaleString('fr-FR')}
-                                </div>
-                            `;
-                        }).join('') + 
-                    '</div>';
-                }
-            } catch (error) {
-                console.error('Erreur:', error);
-                document.getElementById('myProxies').innerHTML = '<div class="empty">Erreur de chargement</div>';
-            }
-        }
-
-        // Charger transactions
-        async function loadTransactions() {
-            try {
-                const transactions = await apiCall('/api/transactions');
-                const div = document.getElementById('myTransactions');
-                
-                if (transactions.length === 0) {
-                    div.innerHTML = '<div class="empty">Aucune transaction</div>';
-                } else {
-                    div.innerHTML = '<div class="proxy-list">' +
-                        transactions.map(t => `
-                            <div class="proxy-item">
-                                <strong>${t.type === 'credit' ? '➕ Crédit' : t.type === 'purchase' ? '🛒 Achat' : '➖ Débit'}</strong>: ${t.description}<br>
-                                <strong>Montant:</strong> $${t.amount.toFixed(2)} | 
-                                <strong>Solde après:</strong> $${t.balanceAfter.toFixed(2)}<br>
-                                <strong>Date:</strong> ${new Date(t.createdAt).toLocaleString('fr-FR')}
-                            </div>
-                        `).join('') +
-                    '</div>';
-                }
-            } catch (error) {
-                console.error('Erreur:', error);
-                document.getElementById('myTransactions').innerHTML = '<div class="empty">Erreur de chargement</div>';
-            }
-        }
-
-        // Rafraîchir le profil
-        async function refreshProfile() {
-            try {
-                const profile = await apiCall('/api/auth/me');
-                user = profile;
-                localStorage.setItem('user', JSON.stringify(profile));
-                
-                document.getElementById('headerBalance').textContent = '$' + profile.balance.toFixed(2);
-                document.getElementById('balance').textContent = '$' + profile.balance.toFixed(2);
-            } catch (error) {
-                console.error('Erreur profil:', error);
-            }
-        }
-
-        // Initialisation
-        async function init() {
-            await loadPrices();
-            await refreshProfile();
-            await loadMyProxies();
-            await loadTransactions();
-        }
-
-        init();
-    </script>
+/* ================= INIT ================= */
+async function init() {
+    await loadPrices();
+    await refreshProfile();
+    await loadMyProxies();
+    await loadTransactions();
+}
+init();
+</script>
 </body>
 </html>
