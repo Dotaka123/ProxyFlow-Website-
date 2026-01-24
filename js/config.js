@@ -1,25 +1,19 @@
-const API_URL = "https://adminpanel-fj5l.onrender.com";
+const API_BASE_URL = "https://adminpanel-fj5l.onrender.com";
 
 async function apiCall(endpoint, options = {}) {
-    const token = localStorage.getItem("token");
-    if (!token) throw new Error("Non connecté");
-
+    const token = localStorage.getItem('token');
     const config = {
-        method: options.method || "GET",
+        method: options.method || 'GET',
         headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${token}`
-        }
+            'Content-Type': 'application/json',
+            ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
+        body: options.body || null
     };
 
-    if (options.body) config.body = options.body;
+    const res = await fetch(API_BASE_URL + endpoint, config);
+    const data = await res.json();
 
-    const res = await fetch(API_URL + endpoint, config);
-
-    if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "Erreur API");
-    }
-
-    return res.json();
+    if (!res.ok) throw new Error(data.error || 'Erreur API');
+    return data;
 }
