@@ -507,9 +507,17 @@ document.getElementById('buyProxyForm').addEventListener('submit', async (e) => 
 });
 
 /* ================= INIT ================= */
+    function refreshProfile() {
+    // Mettre à jour l’email
+    document.getElementById('userEmail').textContent = user.email || '';
+    // Mettre à jour le solde
+    document.getElementById('headerBalance').textContent = '$' + (user.balance || 0).toFixed(2);
+    document.getElementById('balance').textContent = '$' + (user.balance || 0).toFixed(2);
+}
+
 async function init() {
     await loadPrices();
-    await refreshProfile();
+    refreshProfile();   // juste appeler la fonction
     await loadMyProxies();
     await loadTransactions();
 }
