@@ -2,41 +2,76 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<title>Dashboard</title>
+<title>Dashboard Proxy</title>
 </head>
 <body>
 
-<h2>Dashboard</h2>
+<h2>Dashboard Proxy</h2>
+
+<div>
+  <span id="userEmail"></span>
+  <span id="balance"></span>
+  <button onclick="logout()">Logout</button>
+</div>
+
+<hr>
+
+<h3>Acheter un proxy</h3>
 
 <select id="pkgSelect" onchange="onPackageChange()">
   <option value="">Choisir package</option>
-  <option value="1">Golden</option>
-  <option value="2">Silver</option>
 </select>
 
-<select id="countrySelect" disabled></select>
-<select id="durationSelect" disabled></select>
+<select id="countrySelect" onchange="onCountryChange()" disabled>
+  <option value="">Choisir pays</option>
+</select>
 
-<button onclick="createProxy()">Créer proxy</button>
+<select id="citySelect" onchange="onCityChange()" disabled>
+  <option value="">Choisir ville</option>
+</select>
 
+<select id="providerSelect" onchange="onProviderChange()" disabled>
+  <option value="">Choisir provider</option>
+</select>
+
+<select id="durationSelect" disabled>
+  <option value="">Choisir durée</option>
+</select>
+
+<select id="protocolSelect">
+  <option value="http">HTTP</option>
+  <option value="socks">SOCKS</option>
+</select>
+
+<button onclick="createProxy()">Acheter</button>
+
+<hr>
+
+<h3>Mes Proxies</h3>
 <div id="proxyList"></div>
+
+<hr>
+
+<h3>Transactions</h3>
+<div id="transactions"></div>
 
 <script>
 const API_BASE_URL = "https://bot.mega-panel.net/api/web/index.php/v1";
 
-function getToken(){
-  return localStorage.getItem("token");
+function getToken(){ return localStorage.getItem("token"); }
+function authHeader(){
+  const token = getToken();
+  return token ? { "Authorization": "Bearer " + token } : {};
 }
 
-async function apiCall(endpoint, options = {}){
-  const token = getToken();
+async function apiCall(endpoint, method="GET", body=null){
   const res = await fetch(API_BASE_URL + endpoint, {
-    method: options.method || "GET",
+    method,
     headers: {
       "Content-Type": "application/json",
-      ...(token ? { "Authorization": "Bearer " + token } : {})
+      ...authHeader()
     },
-    body: options.body ? JSON.stringify(options.body) : null
+    body: body ? JSON.stringify(body) : null
   });
 
   const data = await res.json();
@@ -44,64 +79,117 @@ async function apiCall(endpoint, options = {}){
   return data;
 }
 
-let allPrices = [];
+let packages = [];
+let prices = [];
 
 async function init(){
-  try {
-    allPrices = await apiCall("/prices");   // OK, requires token
+  try{
+    document.getElementById("userEmail").innerText = localStorage.getItem("email");
+
+    packages = await apiCall("/packages");
+    prices = await apiCall("/prices");
+
+    document.getElementById("pkgSelect").innerHTML =
+      '<option value="">Choisir package</option>' +
+      packages.map(p => `<option value="${p.id}">${p.package_name}</option>`).join("");
+
+    loadBalance();
     loadProxies();
-  } catch(e) {
+    loadTransactions();
+  } catch(e){
     alert("Erreur init: " + JSON.stringify(e));
     window.location.href = "login.html";
   }
+}
+
+async function loadBalance(){
+  const bal = await apiCall("/balance");
+  document.getElementById("balance").innerText = "Solde: $" + bal.balance;
+}
+
+async function loadProxies(){
+  const list = await apiCall("/all-proxies?offset=0");
+  document.getElementById("proxyList").innerText = JSON.stringify(list, null, 2);
+}
+
+async function loadTransactions(){
+  const tx = await apiCall("/customer-transactions?offset=0");
+  document.getElementById("transactions").innerText = JSON.stringify(tx, null, 2);
 }
 
 async function onPackageChange(){
   const pkgId = document.getElementById("pkgSelect").value;
   if(!pkgId) return;
 
-  try {
-    const countries = await apiCall(`/countries?pkg_id=${pkgId}`);
-    const countrySelect = document.getElementById("countrySelect");
-    countrySelect.disabled = false;
-    countrySelect.innerHTML = countries.map(c => `<option value="${c.id}">${c.country_name}</option>`).join("");
+  const countries = await apiCall(`/countries?pkg_id=${pkgId}`);
+  document.getElementById("countrySelect").disabled = false;
+  document.getElementById("countrySelect").innerHTML =
+    '<option value="">Choisir pays</option>' +
+    countries.map(c => `<option value="${c.id}">${c.country_name}</option>`).join("");
 
-    const pkg = allPrices.find(p => p.package_id == pkgId);
-    document.getElementById("durationSelect").disabled = false;
-    document.getElementById("durationSelect").innerHTML = pkg.map(d => `<option value="${d.days}">${d.days} days - $${d.price}</option>`).join("");
+  const pkgPrices = prices; // prices API retourne list
+  const list = pkgPrices.filter(p => p.package_id == pkgId);
 
-  } catch(e){
-    console.error(e);
-    alert("Erreur /countries : " + JSON.stringify(e));
-  }
+  document.getElementById("durationSelect").disabled = false;
+  document.getElementById("durationSelect").innerHTML =
+    '<option value="">Choisir durée</option>' +
+    list.map(d => `<option value="${d.days}">${d.days} jours - $${d.price}</option>`).join("");
+}
+
+async function onCountryChange(){
+  const pkgId = document.getElementById("pkgSelect").value;
+  const countryId = document.getElementById("countrySelect").value;
+
+  const cities = await apiCall(`/cities?country_id=${countryId}&pkg_id=${pkgId}`);
+  document.getElementById("citySelect").disabled = false;
+  document.getElementById("citySelect").innerHTML =
+    '<option value="">Choisir ville</option>' +
+    cities.map(c => `<option value="${c.id}">${c.city_name}</option>`).join("");
+}
+
+async function onCityChange(){
+  const pkgId = document.getElementById("pkgSelect").value;
+  const cityId = document.getElementById("citySelect").value;
+
+  const providers = await apiCall(`/service-providers?city_id=${cityId}&pkg_id=${pkgId}`);
+  document.getElementById("providerSelect").disabled = false;
+  document.getElementById("providerSelect").innerHTML =
+    '<option value="">Choisir provider</option>' +
+    providers.map(p => `<option value="${p.id}">${p.service_provider_name}</option>`).join("");
+}
+
+async function onProviderChange(){
+  // optional
 }
 
 async function createProxy(){
   const pkgId = document.getElementById("pkgSelect").value;
-  const countryId = document.getElementById("countrySelect").value;
+  const providerId = document.getElementById("providerSelect").value;
   const duration = document.getElementById("durationSelect").value;
+  const protocol = document.getElementById("protocolSelect").value;
 
-  try {
+  if(!pkgId || !providerId || !duration) return alert("Remplis tout");
+
+  try{
     const payload = {
-      parent_proxy_id: 1, // à remplacer par vrai parent proxy id
-      protocol: "http",
-      duration: duration
+      parent_proxy_id: providerId,
+      protocol,
+      duration: parseFloat(duration)
     };
-    const res = await apiCall("/proxies", { method: "POST", body: payload });
-    alert("Proxy créé ! ID: " + res.id);
+
+    const res = await apiCall("/proxies", "POST", payload);
+    alert("Proxy créé !");
     loadProxies();
+    loadBalance();
+    loadTransactions();
   } catch(e){
-    alert("Erreur création: " + JSON.stringify(e));
+    alert("Erreur create proxy: " + JSON.stringify(e));
   }
 }
 
-async function loadProxies(){
-  try {
-    const list = await apiCall("/all-proxies?offset=0");
-    document.getElementById("proxyList").innerHTML = JSON.stringify(list, null, 2);
-  } catch(e){
-    console.error(e);
-  }
+function logout(){
+  localStorage.clear();
+  window.location.href = "login.html";
 }
 
 init();
