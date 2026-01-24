@@ -165,59 +165,52 @@
 </div>
 
 <script>
-    const user = JSON.parse(localStorage.getItem('user') || '{}');
-    const token = localStorage.getItem('token');
+const user = JSON.parse(localStorage.getItem('user') || '{}');
+const token = localStorage.getItem('token');
 
-    if (!user.email || !token) {
-        window.location.href = 'login.html';
+if (!user.email || !token) {
+    window.location.href = 'login.html';
+}
+
+document.getElementById('userEmail').textContent = user.email;
+document.getElementById('userBalance').textContent = (user.balance || 0).toFixed(2);
+
+async function submitRecharge() {
+    const faucetpayUsername = document.getElementById('fpUsername').value.trim();
+    const amount = parseFloat(document.getElementById('amount').value);
+
+    if (!faucetpayUsername || !amount || amount < 0.25) {
+        alert('Remplis correctement le nom FaucetPay et le montant (min 0.25$)');
+        return;
     }
 
-    document.getElementById('userEmail').textContent = user.email;
-    document.getElementById('userBalance').textContent = (user.balance || 0).toFixed(2);
+    try {
+        const res = await fetch('/api/recharge-request', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ amount, faucetpayUsername })
+        });
 
-    async function submitRecharge() {
-        const faucetpayUsername = document.getElementById('fpUsername').value.trim();
-        const amount = parseFloat(document.getElementById('amount').value);
+        const data = await res.json();
 
-        if (!faucetpayUsername || !amount || amount < 0.25) {
-            alert('Remplis correctement le nom FaucetPay et le montant (min 0.25$)');
+        if (!res.ok) {
+            alert(data.error || 'Erreur lors de l’envoi');
             return;
         }
 
-        try {
-            const res = await fetch('/api/create-proxy', {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json',
-    'Authorization': `Bearer ${userToken}`
-  },
-  body: JSON.stringify({
-    parent_proxy_id,
-    package_id,
-    protocol,
-    duration,
-    username,
-    password,
-    ip_addr
-  })
-});
+        document.getElementById('successBox').style.display = 'block';
+        document.getElementById('fpUsername').value = '';
+        document.getElementById('amount').value = '';
 
-            const data = await res.json();
-
-            if (!res.ok) {
-                alert(data.error || 'Erreur lors de l’envoi');
-                return;
-            }
-
-            document.getElementById('successBox').style.display = 'block';
-            document.getElementById('fpUsername').value = '';
-            document.getElementById('amount').value = '';
-
-        } catch (err) {
-            alert('Erreur réseau');
-        }
+    } catch (err) {
+        alert('Erreur réseau');
     }
+}
 </script>
+
 
 </body>
 </html>
