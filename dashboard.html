@@ -327,9 +327,9 @@ let prices = {};
 
 /* ================= UI ================= */
 document.getElementById('userEmail').textContent = user.email || '';
-document.getElementById('headerBalance').textContent = '$' + (user.balance || 0).toFixed(2);
-// Après achat
-document.getElementById('balance').textContent = '$' + data.userBalance.toFixed(2);
+// Mettre à jour le solde utilisateur après achat
+document.getElementById('headerBalance').textContent = '$' + result.userBalance.toFixed(2);
+document.getElementById('balance').textContent = '$' + result.userBalance.toFixed(2);
 
 
 function logout() {
@@ -455,14 +455,15 @@ document.getElementById('duration').addEventListener('change', e => {
 });
 
 /* ================= BUY ================= */
-document.getElementById('buyProxyForm').addEventListener('submit', async e => {
+document.getElementById('buyProxyForm').addEventListener('submit', async (e) => {
     e.preventDefault();
-    const btn = document.getElementById('buyBtn');
-    btn.disabled = true;
-    btn.textContent = 'Achat...';
+    
+    const buyBtn = document.getElementById('buyBtn');
+    buyBtn.disabled = true;
+    buyBtn.textContent = 'Achat en cours...';
 
     try {
-        const data = {
+        const proxyData = {
             parent_proxy_id: document.getElementById('parentProxy').value,
             package_id: document.getElementById('packageType').value,
             protocol: document.getElementById('protocol').value,
@@ -471,33 +472,42 @@ document.getElementById('buyProxyForm').addEventListener('submit', async e => {
             password: document.getElementById('password').value || undefined
         };
 
-        const res = await apiCall('/api/create-proxy', {
+        const result = await apiCall('/api/create-proxy', {
             method: 'POST',
-            body: JSON.stringify(data)
+            body: JSON.stringify(proxyData)
         });
 
-        user.balance = res.newBalance;
+        // Mettre à jour le solde
+        user.balance = result.userBalance; // ✅ nouveau solde utilisateur
         localStorage.setItem('user', JSON.stringify(user));
-        document.getElementById('headerBalance').textContent = '$' + user.balance.toFixed(2);
-        document.getElementById('balance').textContent = '$' + user.balance.toFixed(2);
+        document.getElementById('headerBalance').textContent = '$' + result.userBalance.toFixed(2);
+        document.getElementById('balance').textContent = '$' + result.userBalance.toFixed(2);
 
-        document.getElementById('buyAlert').innerHTML =
-            '<div class="alert alert-success">✅ Proxy acheté avec succès</div>';
+        // Afficher succès
+        document.getElementById('buyAlert').innerHTML = 
+            '<div class="alert alert-success">✅ Proxy acheté avec succès! Voir ci-dessous.</div>';
 
+        // Reset form
         document.getElementById('buyProxyForm').reset();
         document.getElementById('priceInfo').style.display = 'none';
 
-        loadMyProxies();
-        loadTransactions();
+        // Recharger les proxies et transactions
+        await loadMyProxies();
+        await loadTransactions();
 
-    } catch (err) {
-        document.getElementById('buyAlert').innerHTML =
-            `<div class="alert alert-error">❌ ${err.message}</div>`;
+        setTimeout(() => {
+            document.getElementById('buyAlert').innerHTML = '';
+        }, 5000);
+
+    } catch (error) {
+        document.getElementById('buyAlert').innerHTML = 
+            `<div class="alert alert-error">❌ ${error.message}</div>`;
     } finally {
-        btn.disabled = false;
-        btn.textContent = 'Acheter le Proxy';
+        buyBtn.disabled = false;
+        buyBtn.textContent = 'Acheter le Proxy';
     }
 });
+
 
 /* ================= INIT ================= */
 async function init() {
