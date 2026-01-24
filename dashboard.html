@@ -521,6 +521,62 @@ async function init() {
     await loadMyProxies();
     await loadTransactions();
 }
+async function loadMyProxies() {
+    const container = document.getElementById('myProxies');
+    container.innerHTML = 'Chargement...';
+
+    try {
+        const proxies = await apiCall('/api/my-proxies'); // ton endpoint pour récupérer les proxies
+
+        if (!proxies.length) {
+            container.innerHTML = '<div class="empty">Vous n’avez aucun proxy.</div>';
+            return;
+        }
+
+        container.innerHTML = '';
+        proxies.forEach(p => {
+            container.innerHTML += `
+                <div class="proxy-item">
+                    <strong>Package:</strong> ${p.package_name} | 
+                    <strong>Durée:</strong> ${p.duration} jours<br>
+                    <div class="proxy-credentials">
+                        ${p.ip}:${p.port} | ${p.username}:${p.password}
+                    </div>
+                </div>
+            `;
+        });
+
+    } catch (error) {
+        container.innerHTML = `<div class="alert alert-error">Erreur: ${error.message}</div>`;
+    }
+}
+async function loadTransactions() {
+    const container = document.getElementById('myTransactions');
+    container.innerHTML = 'Chargement...';
+
+    try {
+        const transactions = await apiCall('/api/my-transactions');
+
+        if (!transactions.length) {
+            container.innerHTML = '<div class="empty">Aucune transaction.</div>';
+            return;
+        }
+
+        container.innerHTML = '';
+        transactions.forEach(t => {
+            container.innerHTML += `
+                <div class="proxy-item">
+                    <strong>ID:</strong> ${t.id} | 
+                    <strong>Montant:</strong> $${t.amount.toFixed(2)} | 
+                    <strong>Date:</strong> ${new Date(t.date).toLocaleString()}
+                </div>
+            `;
+        });
+
+    } catch (error) {
+        container.innerHTML = `<div class="alert alert-error">Erreur: ${error.message}</div>`;
+    }
+}
 init();
 </script>
 </body>
