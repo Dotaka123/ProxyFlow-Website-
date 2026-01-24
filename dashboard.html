@@ -1,184 +1,107 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard - Proxy Shop</title>
-    <style>
-        body { font-family: 'Segoe UI', sans-serif; background: #f4f7f6; margin: 0; display: flex; flex-direction: column; height: 100vh; }
-        .header { background: #4e73df; color: white; padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center; }
-        .container { padding: 20px; max-width: 1000px; margin: 0 auto; width: 100%; box-sizing: border-box; }
-        .card { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); margin-bottom: 20px; }
-        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-top: 15px; }
-        select, button { width: 100%; padding: 12px; border-radius: 6px; border: 1px solid #ddd; font-size: 14px; }
-        .btn-buy { background: #1cc88a; color: white; border: none; font-weight: bold; cursor: pointer; margin-top: 20px; transition: 0.3s; }
-        .btn-buy:hover { background: #17a673; }
-        .proxy-item { background: #f8f9fc; border-left: 4px solid #4e73df; padding: 15px; margin-bottom: 10px; border-radius: 4px; font-family: monospace; }
-        .balance-badge { background: rgba(255,255,255,0.2); padding: 5px 15px; border-radius: 20px; font-weight: bold; }
-    </style>
+<meta charset="UTF-8">
+<title>Dashboard</title>
 </head>
 <body>
 
-<div class="header">
-    <h2>🌐 Proxy Shop</h2>
-    <div>
-        <span id="userEmail" style="margin-right: 15px;"></span>
-        <span class="balance-badge">Solde: <span id="headerBalance">$0.00</span></span>
-        <button onclick="logout()" style="width: auto; padding: 5px 10px; margin-left: 15px; background: #e74a3b; color: white; border: none; border-radius: 4px; cursor: pointer;">Quitter</button>
-    </div>
-</div>
+<h2>Dashboard</h2>
 
-<div class="container">
-    <div class="card">
-        <h3>🛒 Acheter un nouveau Proxy</h3>
-        <div class="grid">
-            <div>
-                <label>Package</label>
-                <select id="pkgSelect" onchange="onPackageChange()">
-                    <option value="">-- Choisir --</option>
-                    <option value="1">Golden (Changement pays possible)</option>
-                    <option value="2">Silver (Pays fixe)</option>
-                </select>
-            </div>
+<select id="pkgSelect" onchange="onPackageChange()">
+  <option value="">Choisir package</option>
+  <option value="1">Golden</option>
+  <option value="2">Silver</option>
+</select>
 
-            <div>
-                <label>Durée</label>
-                <select id="durationSelect" disabled>
-                    <option value="">Sélectionnez un package</option>
-                </select>
-            </div>
+<select id="countrySelect" disabled></select>
+<select id="durationSelect" disabled></select>
 
-            <div>
-                <label>Pays</label>
-                <select id="countrySelect" disabled>
-                    <option value="">Sélectionnez un package</option>
-                </select>
-            </div>
+<button onclick="createProxy()">Créer proxy</button>
 
-            <div>
-                <label>Protocole</label>
-                <select id="protocolSelect">
-                    <option value="http">HTTP</option>
-                    <option value="socks5">SOCKS5</option>
-                </select>
-            </div>
-        </div>
-        <button class="btn-buy" id="btnBuy" onclick="confirmPurchase()">CONFIRMER L'ACHAT</button>
-    </div>
-
-    <div class="card">
-        <h3>📋 Mes Proxies actifs</h3>
-        <div id="proxyList">Chargement...</div>
-    </div>
-</div>
+<div id="proxyList"></div>
 
 <script>
-const API_BASE_URL = "https://adminpanel-fj5l.onrender.com";
+const API_BASE_URL = "https://bot.mega-panel.net/api/web/index.php/v1";
 
-async function apiCall(endpoint, options = {}) {
-    const token = localStorage.getItem('token');
-    const config = {
-        method: options.method || 'GET',
-        headers: {
-            'Content-Type': 'application/json',
-            ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-        },
-        body: options.body || null
-    };
-    const res = await fetch(API_BASE_URL + endpoint, config);
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Erreur API');
-    return data;
+function getToken(){
+  return localStorage.getItem("token");
 }
 
-let allPrices = {};
+async function apiCall(endpoint, options = {}){
+  const token = getToken();
+  const res = await fetch(API_BASE_URL + endpoint, {
+    method: options.method || "GET",
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { "Authorization": "Bearer " + token } : {})
+    },
+    body: options.body ? JSON.stringify(options.body) : null
+  });
 
-async function init() {
-    try {
-        const user = await apiCall('/api/auth/me');
-        document.getElementById('userEmail').textContent = user.email;
-        document.getElementById('headerBalance').textContent = `$${user.balance.toFixed(2)}`;
-
-        allPrices = await apiCall('/api/prices');
-        loadUserProxies();
-    } catch (err) {
-        window.location.href = 'login.html';
-    }
+  const data = await res.json();
+  if(!res.ok) throw data;
+  return data;
 }
 
-async function onPackageChange() {
-    const pkgId = parseInt(document.getElementById('pkgSelect').value);
-    if (!pkgId) return;
+let allPrices = [];
 
-    try {
-        // Charger les pays depuis l'API
-        const countries = await apiCall(`/api/countries?pkg_id=${pkgId}`);
-        const countrySelect = document.getElementById('countrySelect');
-        countrySelect.disabled = false;
-        countrySelect.innerHTML = countries.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
-
-        // Trouver le package pour afficher les durées
-        const pkg = Object.values(allPrices).find(p => p.package_id === pkgId);
-        if (!pkg) return alert("Package introuvable");
-
-        const durationSelect = document.getElementById('durationSelect');
-        durationSelect.disabled = false;
-        durationSelect.innerHTML = pkg.prices.map(p => `<option value="${p.duration}">${p.label} - $${p.price}</option>`).join('');
-
-    } catch (err) {
-        console.error("Erreur /api/countries:", err.message);
-        alert("Erreur lors du chargement des pays. Vérifiez la console.");
-    }
+async function init(){
+  try {
+    allPrices = await apiCall("/prices");   // OK, requires token
+    loadProxies();
+  } catch(e) {
+    alert("Erreur init: " + JSON.stringify(e));
+    window.location.href = "login.html";
+  }
 }
 
-async function confirmPurchase() {
-    const btn = document.getElementById('btnBuy');
+async function onPackageChange(){
+  const pkgId = document.getElementById("pkgSelect").value;
+  if(!pkgId) return;
+
+  try {
+    const countries = await apiCall(`/countries?pkg_id=${pkgId}`);
+    const countrySelect = document.getElementById("countrySelect");
+    countrySelect.disabled = false;
+    countrySelect.innerHTML = countries.map(c => `<option value="${c.id}">${c.country_name}</option>`).join("");
+
+    const pkg = allPrices.find(p => p.package_id == pkgId);
+    document.getElementById("durationSelect").disabled = false;
+    document.getElementById("durationSelect").innerHTML = pkg.map(d => `<option value="${d.days}">${d.days} days - $${d.price}</option>`).join("");
+
+  } catch(e){
+    console.error(e);
+    alert("Erreur /countries : " + JSON.stringify(e));
+  }
+}
+
+async function createProxy(){
+  const pkgId = document.getElementById("pkgSelect").value;
+  const countryId = document.getElementById("countrySelect").value;
+  const duration = document.getElementById("durationSelect").value;
+
+  try {
     const payload = {
-        package_id: document.getElementById('pkgSelect').value,
-        duration: document.getElementById('durationSelect').value,
-        protocol: document.getElementById('protocolSelect').value,
-        country_id: document.getElementById('countrySelect').value
+      parent_proxy_id: 1, // à remplacer par vrai parent proxy id
+      protocol: "http",
+      duration: duration
     };
-
-    if (!payload.package_id || !payload.country_id || !payload.duration) return alert("Veuillez remplir tous les champs");
-
-    try {
-        btn.disabled = true;
-        btn.textContent = "Création en cours...";
-        await apiCall('/api/create-proxy', { method: 'POST', body: JSON.stringify(payload) });
-        alert("✅ Proxy créé avec succès !");
-        location.reload();
-    } catch (err) {
-        alert("Erreur : " + err.message);
-    } finally {
-        btn.disabled = false;
-        btn.textContent = "CONFIRMER L'ACHAT";
-    }
+    const res = await apiCall("/proxies", { method: "POST", body: payload });
+    alert("Proxy créé ! ID: " + res.id);
+    loadProxies();
+  } catch(e){
+    alert("Erreur création: " + JSON.stringify(e));
+  }
 }
 
-async function loadUserProxies() {
-    const container = document.getElementById('proxyList');
-    try {
-        const proxies = await apiCall('/api/my-proxies');
-        if (proxies.length === 0) {
-            container.innerHTML = "<p>Vous n'avez pas encore de proxy.</p>";
-            return;
-        }
-        container.innerHTML = proxies.map(p => `
-            <div class="proxy-item">
-                <strong>${p.packageType?.toUpperCase()}</strong> | 
-                <code>${p.host}:${p.port}:${p.username}:${p.password}</code> |
-                <small>Expire le: ${new Date(p.expiresAt).toLocaleDateString()}</small>
-            </div>
-        `).join('');
-    } catch (e) {
-        container.innerHTML = "Erreur de chargement.";
-    }
-}
-
-function logout() {
-    localStorage.clear();
-    window.location.href = 'login.html';
+async function loadProxies(){
+  try {
+    const list = await apiCall("/all-proxies?offset=0");
+    document.getElementById("proxyList").innerHTML = JSON.stringify(list, null, 2);
+  } catch(e){
+    console.error(e);
+  }
 }
 
 init();
