@@ -316,7 +316,7 @@
 
     <script>
         // ⚠️ CHANGE CETTE URL PAR TON BACKEND DÉPLOYÉ!
-        const API_URL = 'https://adminpanel-fj5l.onrender.com';
+        const API_URL = 'http://localhost:5000';
 
         // Vérifier si l'utilisateur est connecté
         const token = localStorage.getItem('token');
@@ -554,4 +554,49 @@
                 const transactions = await apiCall('/api/transactions');
                 const div = document.getElementById('myTransactions');
                 
-      
+                if (transactions.length === 0) {
+                    div.innerHTML = '<div class="empty">Aucune transaction</div>';
+                } else {
+                    div.innerHTML = '<div class="proxy-list">' +
+                        transactions.map(t => `
+                            <div class="proxy-item">
+                                <strong>${t.type === 'credit' ? '➕ Crédit' : t.type === 'purchase' ? '🛒 Achat' : '➖ Débit'}</strong>: ${t.description}<br>
+                                <strong>Montant:</strong> $${t.amount.toFixed(2)} | 
+                                <strong>Solde après:</strong> $${t.balanceAfter.toFixed(2)}<br>
+                                <strong>Date:</strong> ${new Date(t.createdAt).toLocaleString('fr-FR')}
+                            </div>
+                        `).join('') +
+                    '</div>';
+                }
+            } catch (error) {
+                console.error('Erreur:', error);
+                document.getElementById('myTransactions').innerHTML = '<div class="empty">Erreur de chargement</div>';
+            }
+        }
+
+        // Rafraîchir le profil
+        async function refreshProfile() {
+            try {
+                const profile = await apiCall('/api/auth/me');
+                user = profile;
+                localStorage.setItem('user', JSON.stringify(profile));
+                
+                document.getElementById('headerBalance').textContent = '$' + profile.balance.toFixed(2);
+                document.getElementById('balance').textContent = '$' + profile.balance.toFixed(2);
+            } catch (error) {
+                console.error('Erreur profil:', error);
+            }
+        }
+
+        // Initialisation
+        async function init() {
+            await loadPrices();
+            await refreshProfile();
+            await loadMyProxies();
+            await loadTransactions();
+        }
+
+        init();
+    </script>
+</body>
+</html>
