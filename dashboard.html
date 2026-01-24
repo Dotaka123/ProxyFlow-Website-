@@ -577,6 +577,35 @@ async function loadTransactions() {
         container.innerHTML = `<div class="alert alert-error">Erreur: ${error.message}</div>`;
     }
 }
+let myTransactions = [];
+
+async function loadTransactions() {
+    const container = document.getElementById('myTransactions');
+    container.innerHTML = 'Chargement...';
+
+    try {
+        myTransactions = await apiCall('/api/my-transactions'); // ✅ assignation à variable globale
+
+        if (!myTransactions.length) {
+            container.innerHTML = '<div class="empty">Aucune transaction.</div>';
+            return;
+        }
+
+        container.innerHTML = '';
+        myTransactions.forEach(t => {
+            container.innerHTML += `
+                <div class="proxy-item">
+                    <strong>ID:</strong> ${t.id} | 
+                    <strong>Montant:</strong> $${t.amount.toFixed(2)} | 
+                    <strong>Date:</strong> ${new Date(t.date).toLocaleString()}
+                </div>
+            `;
+        });
+
+    } catch (error) {
+        container.innerHTML = `<div class="alert alert-error">Erreur: ${error.message}</div>`;
+    }
+}
 init();
 </script>
 </body>
