@@ -1,199 +1,557 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta charset="UTF-8">
-<title>Dashboard Proxy</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Proxy Shop</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: Arial, sans-serif;
+            background: #f5f5f5;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .header h1 {
+            font-size: 24px;
+        }
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+        .balance {
+            background: rgba(255,255,255,0.2);
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-weight: bold;
+        }
+        .btn-logout {
+            background: rgba(255,255,255,0.3);
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            color: white;
+            cursor: pointer;
+        }
+        .btn-logout:hover {
+            background: rgba(255,255,255,0.4);
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 30px 20px;
+        }
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .card h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 22px;
+        }
+        .balance-card {
+            text-align: center;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .balance-amount {
+            font-size: 48px;
+            font-weight: bold;
+            margin: 20px 0;
+        }
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #666;
+            font-weight: 500;
+        }
+        .form-group select,
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+        .form-group select:focus,
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s;
+            font-weight: 500;
+        }
+        .btn-primary {
+            background: #667eea;
+            color: white;
+            width: 100%;
+        }
+        .btn-primary:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+        }
+        .btn-primary:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .proxy-list {
+            display: grid;
+            gap: 15px;
+        }
+        .proxy-item {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+        .proxy-item strong {
+            color: #667eea;
+        }
+        .proxy-credentials {
+            background: #e3f2fd;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            font-family: monospace;
+            word-break: break-all;
+        }
+        .empty {
+            text-align: center;
+            color: #999;
+            padding: 40px;
+        }
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+        .alert {
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .alert-info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        .price-info {
+            background: #fff3cd;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            border-left: 4px solid #ffc107;
+        }
+        .price-info strong {
+            color: #856404;
+            font-size: 18px;
+        }
+        .copy-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
+            margin-left: 10px;
+        }
+        .copy-btn:hover {
+            background: #5568d3;
+        }
+        @media (max-width: 768px) {
+            .header-right {
+                width: 100%;
+                justify-content: space-between;
+            }
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
 </head>
 <body>
+    <div class="header">
+        <h1>🌐 Proxy Shop</h1>
+        <div class="header-right">
+            <span id="userEmail"></span>
+            <div class="balance" id="headerBalance">$0.00</div>
+            <button class="btn-logout" onclick="logout()">Déconnexion</button>
+        </div>
+    </div>
 
-<h2>Dashboard Proxy</h2>
+    <div class="container">
+        <!-- Carte Balance -->
+        <div class="card balance-card">
+            <h2>💰 Votre Solde</h2>
+            <div class="balance-amount" id="balance">$0.00</div>
+            <p style="margin-bottom: 15px;">Rechargez votre compte via FaucetPay</p>
+            <a href="recharge.html" style="display: inline-block; background: rgba(255,255,255,0.3); color: white; padding: 12px 30px; border-radius: 8px; text-decoration: none; font-weight: bold;">
+                💳 Recharger mon compte
+            </a>
+        </div>
 
-<div>
-  <span id="userEmail"></span>
-  <span id="balance"></span>
-  <button onclick="logout()">Logout</button>
-</div>
+        <!-- Acheter un Proxy -->
+        <div class="card">
+            <h2>🛒 Acheter un Proxy</h2>
+            <div id="buyAlert"></div>
+            
+            <form id="buyProxyForm">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Package *</label>
+                        <select id="packageType" required>
+                            <option value="">Sélectionnez un package</option>
+                            <option value="1">Golden Package (Pays changeables)</option>
+                            <option value="2">Silver Package (Pays fixe)</option>
+                        </select>
+                    </div>
 
-<hr>
+                    <div class="form-group">
+                        <label>Durée *</label>
+                        <select id="duration" required disabled>
+                            <option value="">Sélectionnez d'abord un package</option>
+                        </select>
+                    </div>
 
-<h3>Acheter un proxy</h3>
+                    <div class="form-group">
+                        <label>Protocol *</label>
+                        <select id="protocol" required>
+                            <option value="">Sélectionnez un protocol</option>
+                            <option value="http">HTTP</option>
+                            <option value="socks5">SOCKS5</option>
+                        </select>
+                    </div>
 
-<select id="pkgSelect" onchange="onPackageChange()">
-  <option value="">Choisir package</option>
-</select>
+                    <div class="form-group">
+                        <label>Pays</label>
+                        <select id="country" disabled>
+                            <option value="">Chargement...</option>
+                        </select>
+                    </div>
+                </div>
 
-<select id="countrySelect" onchange="onCountryChange()" disabled>
-  <option value="">Choisir pays</option>
-</select>
+                <div class="form-group">
+                    <label>Proxy Parent *</label>
+                    <select id="parentProxy" required disabled>
+                        <option value="">Sélectionnez un pays d'abord</option>
+                    </select>
+                </div>
 
-<select id="citySelect" onchange="onCityChange()" disabled>
-  <option value="">Choisir ville</option>
-</select>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Username (optionnel)</label>
+                        <input type="text" id="username" placeholder="Laisser vide pour auto-générer">
+                    </div>
 
-<select id="providerSelect" onchange="onProviderChange()" disabled>
-  <option value="">Choisir provider</option>
-</select>
+                    <div class="form-group">
+                        <label>Password (optionnel)</label>
+                        <input type="text" id="password" placeholder="Laisser vide pour auto-générer">
+                    </div>
+                </div>
 
-<select id="durationSelect" disabled>
-  <option value="">Choisir durée</option>
-</select>
+                <div class="price-info" id="priceInfo" style="display: none;">
+                    <strong>Prix: $<span id="priceAmount">0.00</span></strong>
+                </div>
 
-<select id="protocolSelect">
-  <option value="http">HTTP</option>
-  <option value="socks">SOCKS</option>
-</select>
+                <button type="submit" class="btn btn-primary" id="buyBtn" disabled>
+                    Acheter le Proxy
+                </button>
+            </form>
+        </div>
 
-<button onclick="createProxy()">Acheter</button>
+        <!-- Mes Proxies -->
+        <div class="card">
+            <h2>📋 Mes Proxies</h2>
+            <div id="myProxies" class="loading">Chargement...</div>
+        </div>
 
-<hr>
+        <!-- Mes Transactions -->
+        <div class="card">
+            <h2>💳 Historique des Transactions</h2>
+            <div id="myTransactions" class="loading">Chargement...</div>
+        </div>
+    </div>
 
-<h3>Mes Proxies</h3>
-<div id="proxyList"></div>
+    <script>
+        // ⚠️ CHANGE CETTE URL PAR TON BACKEND DÉPLOYÉ!
+        const API_URL = 'http://localhost:5000';
 
-<hr>
+        // Vérifier si l'utilisateur est connecté
+        const token = localStorage.getItem('token');
+        if (!token) {
+            window.location.href = 'login.html';
+        }
 
-<h3>Transactions</h3>
-<div id="transactions"></div>
+        let user = JSON.parse(localStorage.getItem('user') || '{}');
+        let prices = {};
 
-<script>
-const API_BASE_URL = "https://bot.mega-panel.net/api/web/index.php/v1";
+        // Afficher email et balance
+        document.getElementById('userEmail').textContent = user.email || '';
+        document.getElementById('headerBalance').textContent = '$' + (user.balance || 0).toFixed(2);
+        document.getElementById('balance').textContent = '$' + (user.balance || 0).toFixed(2);
 
-function getToken(){ return localStorage.getItem("token"); }
-function authHeader(){
-  const token = getToken();
-  return token ? { "Authorization": "Bearer " + token } : {};
-}
+        // Fonction de déconnexion
+        function logout() {
+            localStorage.clear();
+            window.location.href = 'login.html';
+        }
 
-async function apiCall(endpoint, method="GET", body=null){
-  const res = await fetch(API_BASE_URL + endpoint, {
-    method,
-    headers: {
-      "Content-Type": "application/json",
-      ...authHeader()
-    },
-    body: body ? JSON.stringify(body) : null
-  });
+        // Fonction pour faire des requêtes API
+        async function apiCall(endpoint, options = {}) {
+            const response = await fetch(`${API_URL}${endpoint}`, {
+                ...options,
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                    ...options.headers
+                }
+            });
 
-  const data = await res.json();
-  if(!res.ok) throw data;
-  return data;
-}
+            if (!response.ok) {
+                if (response.status === 401) {
+                    logout();
+                }
+                const data = await response.json();
+                throw new Error(data.error || 'Erreur API');
+            }
 
-let packages = [];
-let prices = [];
+            return await response.json();
+        }
 
-async function init(){
-  try{
-    document.getElementById("userEmail").innerText = localStorage.getItem("email");
+        // Charger les prix
+        async function loadPrices() {
+            try {
+                const res = await fetch(`${API_URL}/api/prices`);
+                prices = await res.json();
+            } catch (error) {
+                console.error('Erreur prix:', error);
+            }
+        }
 
-    packages = await apiCall("/packages");
-    prices = await apiCall("/prices");
+        // Charger les pays
+        async function loadCountries(packageId) {
+            try {
+                const countries = await apiCall(`/api/countries?pkg_id=${packageId}`);
+                const select = document.getElementById('country');
+                select.innerHTML = '<option value="">Sélectionnez un pays</option>';
+                countries.forEach(c => {
+                    select.innerHTML += `<option value="${c.id}">${c.name}</option>`;
+                });
+                select.disabled = false;
+            } catch (error) {
+                console.error('Erreur pays:', error);
+            }
+        }
 
-    document.getElementById("pkgSelect").innerHTML =
-      '<option value="">Choisir package</option>' +
-      packages.map(p => `<option value="${p.id}">${p.package_name}</option>`).join("");
+        // Charger les proxies parents
+        async function loadParentProxies(packageId, countryId) {
+            try {
+                let url = `/api/parent-proxies?pkg_id=${packageId}`;
+                if (countryId) url += `&country_id=${countryId}`;
+                
+                const proxies = await apiCall(url);
+                const select = document.getElementById('parentProxy');
+                select.innerHTML = '<option value="">Sélectionnez un proxy</option>';
+                
+                proxies.forEach(p => {
+                    select.innerHTML += `<option value="${p.id}">${p.host || p.ip}:${p.port} - ${p.location || 'N/A'}</option>`;
+                });
+                select.disabled = false;
+                document.getElementById('buyBtn').disabled = false;
+            } catch (error) {
+                console.error('Erreur proxies:', error);
+            }
+        }
 
-    loadBalance();
-    loadProxies();
-    loadTransactions();
-  } catch(e){
-    alert("Erreur init: " + JSON.stringify(e));
-    window.location.href = "login.html";
-  }
-}
+        // Gestion du changement de package
+        document.getElementById('packageType').addEventListener('change', async (e) => {
+            const packageId = e.target.value;
+            const durationSelect = document.getElementById('duration');
+            
+            if (!packageId) {
+                durationSelect.disabled = true;
+                return;
+            }
 
-async function loadBalance(){
-  const bal = await apiCall("/balance");
-  document.getElementById("balance").innerText = "Solde: $" + bal.balance;
-}
+            const packageType = packageId === '1' ? 'golden' : 'silver';
+            const packagePrices = prices[packageType]?.prices || [];
 
-async function loadProxies(){
-  const list = await apiCall("/all-proxies?offset=0");
-  document.getElementById("proxyList").innerText = JSON.stringify(list, null, 2);
-}
+            durationSelect.innerHTML = '<option value="">Sélectionnez une durée</option>';
+            packagePrices.forEach(p => {
+                durationSelect.innerHTML += `<option value="${p.duration}">${p.label} - $${p.price}</option>`;
+            });
+            durationSelect.disabled = false;
 
-async function loadTransactions(){
-  const tx = await apiCall("/customer-transactions?offset=0");
-  document.getElementById("transactions").innerText = JSON.stringify(tx, null, 2);
-}
+            await loadCountries(packageId);
+        });
 
-async function onPackageChange(){
-  const pkgId = document.getElementById("pkgSelect").value;
-  if(!pkgId) return;
+        // Gestion du changement de durée
+        document.getElementById('duration').addEventListener('change', (e) => {
+            const duration = parseFloat(e.target.value);
+            const packageId = document.getElementById('packageType').value;
+            
+            if (!duration || !packageId) return;
 
-  const countries = await apiCall(`/countries?pkg_id=${pkgId}`);
-  document.getElementById("countrySelect").disabled = false;
-  document.getElementById("countrySelect").innerHTML =
-    '<option value="">Choisir pays</option>' +
-    countries.map(c => `<option value="${c.id}">${c.country_name}</option>`).join("");
+            const packageType = packageId === '1' ? 'golden' : 'silver';
+            const priceObj = prices[packageType]?.prices.find(p => p.duration === duration);
+            
+            if (priceObj) {
+                document.getElementById('priceInfo').style.display = 'block';
+                document.getElementById('priceAmount').textContent = priceObj.price.toFixed(2);
+            }
+        });
 
-  const pkgPrices = prices; // prices API retourne list
-  const list = pkgPrices.filter(p => p.package_id == pkgId);
+        // Gestion du changement de pays
+        document.getElementById('country').addEventListener('change', async (e) => {
+            const countryId = e.target.value;
+            const packageId = document.getElementById('packageType').value;
+            
+            if (countryId && packageId) {
+                await loadParentProxies(packageId, countryId);
+            }
+        });
 
-  document.getElementById("durationSelect").disabled = false;
-  document.getElementById("durationSelect").innerHTML =
-    '<option value="">Choisir durée</option>' +
-    list.map(d => `<option value="${d.days}">${d.days} jours - $${d.price}</option>`).join("");
-}
+        // Acheter un proxy
+        document.getElementById('buyProxyForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const buyBtn = document.getElementById('buyBtn');
+            buyBtn.disabled = true;
+            buyBtn.textContent = 'Achat en cours...';
 
-async function onCountryChange(){
-  const pkgId = document.getElementById("pkgSelect").value;
-  const countryId = document.getElementById("countrySelect").value;
+            try {
+                const proxyData = {
+                    parent_proxy_id: document.getElementById('parentProxy').value,
+                    package_id: document.getElementById('packageType').value,
+                    protocol: document.getElementById('protocol').value,
+                    duration: document.getElementById('duration').value,
+                    username: document.getElementById('username').value || undefined,
+                    password: document.getElementById('password').value || undefined
+                };
 
-  const cities = await apiCall(`/cities?country_id=${countryId}&pkg_id=${pkgId}`);
-  document.getElementById("citySelect").disabled = false;
-  document.getElementById("citySelect").innerHTML =
-    '<option value="">Choisir ville</option>' +
-    cities.map(c => `<option value="${c.id}">${c.city_name}</option>`).join("");
-}
+                const result = await apiCall('/api/create-proxy', {
+                    method: 'POST',
+                    body: JSON.stringify(proxyData)
+                });
 
-async function onCityChange(){
-  const pkgId = document.getElementById("pkgSelect").value;
-  const cityId = document.getElementById("citySelect").value;
+                // Mettre à jour le solde
+                user.balance = result.newBalance;
+                localStorage.setItem('user', JSON.stringify(user));
+                document.getElementById('headerBalance').textContent = '$' + user.balance.toFixed(2);
+                document.getElementById('balance').textContent = '$' + user.balance.toFixed(2);
 
-  const providers = await apiCall(`/service-providers?city_id=${cityId}&pkg_id=${pkgId}`);
-  document.getElementById("providerSelect").disabled = false;
-  document.getElementById("providerSelect").innerHTML =
-    '<option value="">Choisir provider</option>' +
-    providers.map(p => `<option value="${p.id}">${p.service_provider_name}</option>`).join("");
-}
+                // Afficher succès
+                document.getElementById('buyAlert').innerHTML = 
+                    '<div class="alert alert-success">✅ Proxy acheté avec succès! Voir ci-dessous.</div>';
 
-async function onProviderChange(){
-  // optional
-}
+                // Reset form
+                document.getElementById('buyProxyForm').reset();
+                document.getElementById('priceInfo').style.display = 'none';
 
-async function createProxy(){
-  const pkgId = document.getElementById("pkgSelect").value;
-  const providerId = document.getElementById("providerSelect").value;
-  const duration = document.getElementById("durationSelect").value;
-  const protocol = document.getElementById("protocolSelect").value;
+                // Recharger les proxies
+                await loadMyProxies();
+                await loadTransactions();
 
-  if(!pkgId || !providerId || !duration) return alert("Remplis tout");
+                setTimeout(() => {
+                    document.getElementById('buyAlert').innerHTML = '';
+                }, 5000);
 
-  try{
-    const payload = {
-      parent_proxy_id: providerId,
-      protocol,
-      duration: parseFloat(duration)
-    };
+            } catch (error) {
+                document.getElementById('buyAlert').innerHTML = 
+                    `<div class="alert alert-error">❌ ${error.message}</div>`;
+            } finally {
+                buyBtn.disabled = false;
+                buyBtn.textContent = 'Acheter le Proxy';
+            }
+        });
 
-    const res = await apiCall("/proxies", "POST", payload);
-    alert("Proxy créé !");
-    loadProxies();
-    loadBalance();
-    loadTransactions();
-  } catch(e){
-    alert("Erreur create proxy: " + JSON.stringify(e));
-  }
-}
+        // Copier dans le presse-papier
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                alert('✅ Copié dans le presse-papier!');
+            });
+        }
 
-function logout(){
-  localStorage.clear();
-  window.location.href = "login.html";
-}
+        // Charger mes proxies
+        async function loadMyProxies() {
+            try {
+                const proxies = await apiCall('/api/my-proxies');
+                const div = document.getElementById('myProxies');
+                
+                if (proxies.length === 0) {
+                    div.innerHTML = '<div class="empty">Aucun proxy acheté</div>';
+                } else {
+                    div.innerHTML = '<div class="proxy-list">' + 
+                        proxies.map(p => {
+                            const credentials = `${p.username}:${p.password}@${p.host}:${p.port}`;
+                            return `
+                                <div class="proxy-item">
+                                    <strong>Type:</strong> ${p.packageType || 'N/A'} | 
+                                    <strong>Protocol:</strong> ${p.protocol || 'N/A'} | 
+                                    <strong>Prix:</strong> $${p.price?.toFixed(2) || '0.00'}<br>
+                                    <div class="proxy-credentials">
+                                        ${credentials}
+                                        <button class="copy-btn" onclick="copyToClipboard('${credentials}')">📋 Copier</button>
+                                    </div>
+                                    <strong>Expire:</strong> ${p.expiresAt ? new Date(p.expiresAt).toLocaleString('fr-FR') : 'N/A'} | 
+                                    <strong>Acheté:</strong> ${new Date(p.createdAt).toLocaleString('fr-FR')}
+                                </div>
+                            `;
+                        }).join('') + 
+                    '</div>';
+                }
+            } catch (error) {
+                console.error('Erreur:', error);
+                document.getElementById('myProxies').innerHTML = '<div class="empty">Erreur de chargement</div>';
+            }
+        }
 
-init();
-</script>
-
-</body>
-</html>
+        // Charger transactions
+        async function loadTransactions() {
+            try {
+                const transactions = await apiCall('/api/transactions');
+                const div = document.getElementById('myTransactions');
+                
+      
