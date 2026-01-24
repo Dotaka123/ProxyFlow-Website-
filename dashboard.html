@@ -76,13 +76,12 @@
     <script>
         let allPrices = {};
 
-        // 1. Initialisation : Charger les prix et les infos user
         async function init() {
             try {
                 const user = await apiCall('/api/auth/me');
                 document.getElementById('userEmail').textContent = user.email;
                 document.getElementById('headerBalance').textContent = `$${user.balance.toFixed(2)}`;
-                
+
                 allPrices = await apiCall('/api/prices');
                 loadUserProxies();
             } catch (err) {
@@ -90,29 +89,31 @@
             }
         }
 
-        // 2. Quand on change de package (Golden/Silver)
-        // Remplace ta fonction par celle-ci pour débugger
-// Remplace ta fonction par celle-ci pour débugger
-async function onPackageChange() {
-    const pkgId = document.getElementById('pkgSelect').value;
-    if (!pkgId) return;
+        async function onPackageChange() {
+            const pkgId = document.getElementById('pkgSelect').value;
+            if (!pkgId) return;
 
-    try {
-        // Ajoute ce console.log pour voir ce qui est envoyé
-        console.log("Tentative de chargement des pays pour pkg_id:", pkgId);
-        
-        const countries = await apiCall(`/api/countries?pkg_id=${pkgId}`);
-        
-        const countrySelect = document.getElementById('countrySelect');
-        countrySelect.disabled = false;
-        countrySelect.innerHTML = countries.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
-    } catch (err) {
-        console.error("Détail de l'erreur 400:", err.message);
-        alert("Erreur lors du chargement des pays. Vérifiez la console.");
-    }
-}
+            // Charger les durées
+            const durations = (pkgId == 1 ? allPrices.golden.prices : allPrices.silver.prices);
+            const durationSelect = document.getElementById('durationSelect');
+            durationSelect.disabled = false;
+            durationSelect.innerHTML = durations.map(d => `<option value="${d.duration}">${d.label} - $${d.price}</option>`).join('');
 
-        // 3. Achat final
+            // Charger les pays
+            try {
+                const countries = await apiCall(`/api/countries?pkg_id=${pkgId}`);
+                const countrySelect = document.getElementById('countrySelect');
+                countrySelect.disabled = false;
+                countrySelect.innerHTML = countries.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+            } catch (err) {
+                alert("Erreur lors du chargement des pays.");
+            }
+        }
+
+        async function onCountryChange() {
+            // Si tu veux charger les villes, tu peux le faire ici
+        }
+
         async function confirmPurchase() {
             const btn = document.getElementById('btnBuy');
             const payload = {
@@ -120,22 +121,23 @@ async function onPackageChange() {
                 duration: document.getElementById('durationSelect').value,
                 protocol: document.getElementById('protocolSelect').value,
                 country_id: document.getElementById('countrySelect').value,
-                // On pourrait ajouter city_id ou parent_proxy_id ici si nécessaire
             };
 
-            if (!payload.package_id || !payload.country_id) return alert("Veuillez remplir tous les champs");
+            if (!payload.package_id || !payload.duration || !payload.country_id) {
+                return alert("Veuillez remplir tous les champs");
+            }
 
             try {
                 btn.disabled = true;
                 btn.textContent = "Création en cours...";
-                
-                const result = await apiCall('/api/create-proxy', {
+
+                await apiCall('/api/create-proxy', {
                     method: 'POST',
                     body: JSON.stringify(payload)
                 });
 
                 alert("✅ Proxy créé avec succès !");
-                location.reload(); 
+                location.reload();
             } catch (err) {
                 alert("Erreur : " + err.message);
             } finally {
@@ -144,7 +146,6 @@ async function onPackageChange() {
             }
         }
 
-        // 4. Afficher les proxies
         async function loadUserProxies() {
             const container = document.getElementById('proxyList');
             try {
@@ -155,7 +156,7 @@ async function onPackageChange() {
                 }
                 container.innerHTML = proxies.map(p => `
                     <div class="proxy-item">
-                        <strong>${p.packageType.toUpperCase()}</strong> | 
+                        <strong>${p.packageType?.toUpperCase()}</strong> | 
                         <code>${p.host}:${p.port}:${p.username}:${p.password}</code> |
                         <small>Expire le: ${new Date(p.expiresAt).toLocaleDateString()}</small>
                     </div>
