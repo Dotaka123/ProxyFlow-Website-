@@ -555,7 +555,7 @@ async function loadTransactions() {
     container.innerHTML = 'Chargement...';
 
     try {
-        const transactions = await apiCall('/api/my-transactions');
+        const transactions = await apiCall('/api/transactions');
 
         if (!transactions.length) {
             container.innerHTML = '<div class="empty">Aucune transaction.</div>';
@@ -584,7 +584,7 @@ async function loadTransactions() {
     container.innerHTML = 'Chargement...';
 
     try {
-        myTransactions = await apiCall('/api/my-transactions'); // ✅ assignation à variable globale
+        myTransactions = await apiCall('/api/transactions'); // ✅ assignation à variable globale
 
         if (!myTransactions.length) {
             container.innerHTML = '<div class="empty">Aucune transaction.</div>';
