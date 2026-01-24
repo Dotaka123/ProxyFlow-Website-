@@ -185,17 +185,22 @@
         }
 
         try {
-            const res = await fetch('/api/recharge-request', {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    faucetpayUsername,
-                    amount
-                })
-            });
+            const res = await fetch('/api/create-proxy', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${userToken}`
+  },
+  body: JSON.stringify({
+    parent_proxy_id,
+    package_id,
+    protocol,
+    duration,
+    username,
+    password,
+    ip_addr
+  })
+});
 
             const data = await res.json();
 
