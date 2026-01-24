@@ -1,5 +1,5 @@
 // ⚠️ CHANGE CETTE URL PAR TON BACKEND DÉPLOYÉ!
-const API_URL = 'http://localhost:5000'; // Temporaire pour test local
+const API_URL = 'https://adminpanel-fj5l.onrender.com'; // Temporaire pour test local
 
 async function apiCall(endpoint, options = {}) {
     const token = localStorage.getItem('token');
