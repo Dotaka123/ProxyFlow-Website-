@@ -457,7 +457,7 @@ document.getElementById('duration').addEventListener('change', e => {
 /* ================= BUY ================= */
 document.getElementById('buyProxyForm').addEventListener('submit', async (e) => {
     e.preventDefault();
-    
+
     const buyBtn = document.getElementById('buyBtn');
     buyBtn.disabled = true;
     buyBtn.textContent = 'Achat en cours...';
@@ -472,26 +472,24 @@ document.getElementById('buyProxyForm').addEventListener('submit', async (e) => 
             password: document.getElementById('password').value || undefined
         };
 
+        // ✅ Déclaration correcte de la variable
         const result = await apiCall('/api/create-proxy', {
             method: 'POST',
             body: JSON.stringify(proxyData)
         });
 
-        // Mettre à jour le solde
-        user.balance = result.userBalance; // ✅ nouveau solde utilisateur
+        // ✅ Utiliser result ici
+        user.balance = result.userBalance;
         localStorage.setItem('user', JSON.stringify(user));
         document.getElementById('headerBalance').textContent = '$' + result.userBalance.toFixed(2);
         document.getElementById('balance').textContent = '$' + result.userBalance.toFixed(2);
 
-        // Afficher succès
         document.getElementById('buyAlert').innerHTML = 
             '<div class="alert alert-success">✅ Proxy acheté avec succès! Voir ci-dessous.</div>';
 
-        // Reset form
         document.getElementById('buyProxyForm').reset();
         document.getElementById('priceInfo').style.display = 'none';
 
-        // Recharger les proxies et transactions
         await loadMyProxies();
         await loadTransactions();
 
@@ -507,7 +505,6 @@ document.getElementById('buyProxyForm').addEventListener('submit', async (e) => 
         buyBtn.textContent = 'Acheter le Proxy';
     }
 });
-
 
 /* ================= INIT ================= */
 async function init() {
