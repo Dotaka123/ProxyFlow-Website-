@@ -91,28 +91,26 @@
         }
 
         // 2. Quand on change de package (Golden/Silver)
-        async function onPackageChange() {
-            const pkgId = document.getElementById('pkgSelect').value;
-            const durationSelect = document.getElementById('durationSelect');
-            const countrySelect = document.getElementById('countrySelect');
-            
-            if (!pkgId) return;
+        // Remplace ta fonction par celle-ci pour débugger
+// Remplace ta fonction par celle-ci pour débugger
+async function onPackageChange() {
+    const pkgId = document.getElementById('pkgSelect').value;
+    if (!pkgId) return;
 
-            // Charger les durées depuis l'objet PRICES du serveur
-            const pkgKey = pkgId == "1" ? 'golden' : 'silver';
-            const pkgData = allPrices[pkgKey];
-            
-            durationSelect.disabled = false;
-            durationSelect.innerHTML = pkgData.prices.map(p => 
-                `<option value="${p.duration}">${p.label} - $${p.price}</option>`
-            ).join('');
-
-            // Charger les pays
-            countrySelect.disabled = false;
-            countrySelect.innerHTML = '<option>Chargement...</option>';
-            const countries = await apiCall(`/api/countries?pkg_id=${pkgId}`);
-            countrySelect.innerHTML = countries.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
-        }
+    try {
+        // Ajoute ce console.log pour voir ce qui est envoyé
+        console.log("Tentative de chargement des pays pour pkg_id:", pkgId);
+        
+        const countries = await apiCall(`/api/countries?pkg_id=${pkgId}`);
+        
+        const countrySelect = document.getElementById('countrySelect');
+        countrySelect.disabled = false;
+        countrySelect.innerHTML = countries.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+    } catch (err) {
+        console.error("Détail de l'erreur 400:", err.message);
+        alert("Erreur lors du chargement des pays. Vérifiez la console.");
+    }
+}
 
         // 3. Achat final
         async function confirmPurchase() {
