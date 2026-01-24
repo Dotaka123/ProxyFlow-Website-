@@ -1,97 +1,178 @@
 <!DOCTYPE html>
-<html>
+<html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>Dashboard</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Proxy Shop</title>
     <style>
-        body { font-family: sans-serif; background: #f0f2f5; padding: 20px; }
-        .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px; }
-        .btn { background: #4e73df; color: white; padding: 10px; border: none; cursor: pointer; border-radius: 4px; }
-        select { padding: 8px; margin-right: 10px; }
+        body { font-family: 'Segoe UI', sans-serif; background: #f4f7f6; margin: 0; display: flex; flex-direction: column; height: 100vh; }
+        .header { background: #4e73df; color: white; padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center; }
+        .container { padding: 20px; max-width: 1000px; margin: 0 auto; width: 100%; box-sizing: border-box; }
+        .card { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-top: 15px; }
+        select, button { width: 100%; padding: 12px; border-radius: 6px; border: 1px solid #ddd; font-size: 14px; }
+        .btn-buy { background: #1cc88a; color: white; border: none; font-weight: bold; cursor: pointer; margin-top: 20px; transition: 0.3s; }
+        .btn-buy:hover { background: #17a673; }
+        .proxy-item { background: #f8f9fc; border-left: 4px solid #4e73df; padding: 15px; margin-bottom: 10px; border-radius: 4px; font-family: monospace; }
+        .balance-badge { background: rgba(255,255,255,0.2); padding: 5px 15px; border-radius: 20px; font-weight: bold; }
     </style>
 </head>
 <body>
-    <div class="card">
-        <h2>Solde : <span id="balance">0.00</span> $</h2>
-        <p id="email"></p>
+
+    <div class="header">
+        <h2>🌐 Proxy Shop</h2>
+        <div>
+            <span id="userEmail" style="margin-right: 15px;"></span>
+            <span class="balance-badge">Solde: <span id="headerBalance">$0.00</span></span>
+            <button onclick="logout()" style="width: auto; padding: 5px 10px; margin-left: 15px; background: #e74a3b; color: white; border: none; border-radius: 4px; cursor: pointer;">Quitter</button>
+        </div>
     </div>
 
-    <div class="card">
-        <h3>🛒 Acheter un Proxy</h3>
-        <select id="pkgSelect" onchange="loadCountries()">
-            <option value="">-- Package --</option>
-            <option value="1">Golden (0.70$)</option>
-            <option value="2">Silver (0.50$)</option>
-        </select>
-        <select id="countrySelect" onchange="loadCities()" disabled>
-            <option value="">-- Pays --</option>
-        </select>
-        <select id="citySelect" disabled>
-            <option value="">-- Ville --</option>
-        </select>
-        <select id="protocolSelect">
-            <option value="http">HTTP</option>
-            <option value="socks5">SOCKS5</option>
-        </select>
-        <button class="btn" onclick="buy()">Acheter</button>
-    </div>
+    <div class="container">
+        <div class="card">
+            <h3>🛒 Acheter un nouveau Proxy</h3>
+            <div class="grid">
+                <div>
+                    <label>Package</label>
+                    <select id="pkgSelect" onchange="onPackageChange()">
+                        <option value="">-- Choisir --</option>
+                        <option value="1">Golden (Changement pays possible)</option>
+                        <option value="2">Silver (Pays fixe)</option>
+                    </select>
+                </div>
 
-    <div class="card">
-        <h3>📋 Mes Proxies</h3>
-        <div id="proxyList">Chargement...</div>
+                <div>
+                    <label>Durée</label>
+                    <select id="durationSelect" disabled>
+                        <option value="">Sélectionnez un package</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label>Pays</label>
+                    <select id="countrySelect" onchange="onCountryChange()" disabled>
+                        <option value="">Sélectionnez un package</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label>Protocole</label>
+                    <select id="protocolSelect">
+                        <option value="http">HTTP</option>
+                        <option value="socks5">SOCKS5</option>
+                    </select>
+                </div>
+            </div>
+            <button class="btn-buy" id="btnBuy" onclick="confirmPurchase()">CONFIRMER L'ACHAT</button>
+        </div>
+
+        <div class="card">
+            <h3>📋 Mes Proxies actifs</h3>
+            <div id="proxyList">Chargement...</div>
+        </div>
     </div>
 
     <script src="js/config.js"></script>
     <script>
-        // Charger les pays
-        async function loadCountries() {
-            const pkgId = document.getElementById('pkgSelect').value;
-            const res = await apiCall(`/api/countries?pkg_id=${pkgId}`);
-            const select = document.getElementById('countrySelect');
-            select.disabled = false;
-            select.innerHTML = '<option value="">-- Pays --</option>' + res.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
-        }
+        let allPrices = {};
 
-        // Charger les villes
-        async function loadCities() {
-            const pkgId = document.getElementById('pkgSelect').value;
-            const countryId = document.getElementById('countrySelect').value;
-            const res = await apiCall(`/api/cities?pkg_id=${pkgId}&country_id=${countryId}`);
-            const select = document.getElementById('citySelect');
-            select.disabled = false;
-            select.innerHTML = '<option value="">-- Ville --</option>' + res.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
-        }
-
-        // Action d'achat
-        async function buy() {
-            const body = {
-                package_id: document.getElementById('pkgSelect').value,
-                country_id: document.getElementById('countrySelect').value,
-                city_id: document.getElementById('citySelect').value || 0,
-                protocol: document.getElementById('protocolSelect').value
-            };
+        // 1. Initialisation : Charger les prix et les infos user
+        async function init() {
             try {
-                await apiCall('/api/create-proxy', { method: 'POST', body: JSON.stringify(body) });
-                alert("Achat réussi !");
-                refresh();
-            } catch (e) { alert(e.message); }
+                const user = await apiCall('/api/auth/me');
+                document.getElementById('userEmail').textContent = user.email;
+                document.getElementById('headerBalance').textContent = `$${user.balance.toFixed(2)}`;
+                
+                allPrices = await apiCall('/api/prices');
+                loadUserProxies();
+            } catch (err) {
+                window.location.href = 'login.html';
+            }
         }
 
-        // Rafraîchir les données
-        async function refresh() {
-            const user = await apiCall('/api/auth/me');
-            document.getElementById('balance').innerText = user.balance.toFixed(2);
-            document.getElementById('email').innerText = user.email;
+        // 2. Quand on change de package (Golden/Silver)
+        async function onPackageChange() {
+            const pkgId = document.getElementById('pkgSelect').value;
+            const durationSelect = document.getElementById('durationSelect');
+            const countrySelect = document.getElementById('countrySelect');
+            
+            if (!pkgId) return;
 
-            const proxies = await apiCall('/api/my-proxies');
-            document.getElementById('proxyList').innerHTML = proxies.map(p => `
-                <div style="padding:10px; border-bottom:1px solid #eee">
-                    <b>${p.protocol}</b> | ${p.username}:${p.password}@${p.host}:${p.port}
-                </div>
-            `).join('') || "Aucun proxy";
+            // Charger les durées depuis l'objet PRICES du serveur
+            const pkgKey = pkgId == "1" ? 'golden' : 'silver';
+            const pkgData = allPrices[pkgKey];
+            
+            durationSelect.disabled = false;
+            durationSelect.innerHTML = pkgData.prices.map(p => 
+                `<option value="${p.duration}">${p.label} - $${p.price}</option>`
+            ).join('');
+
+            // Charger les pays
+            countrySelect.disabled = false;
+            countrySelect.innerHTML = '<option>Chargement...</option>';
+            const countries = await apiCall(`/api/countries?pkg_id=${pkgId}`);
+            countrySelect.innerHTML = countries.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
         }
 
-        refresh();
+        // 3. Achat final
+        async function confirmPurchase() {
+            const btn = document.getElementById('btnBuy');
+            const payload = {
+                package_id: document.getElementById('pkgSelect').value,
+                duration: document.getElementById('durationSelect').value,
+                protocol: document.getElementById('protocolSelect').value,
+                country_id: document.getElementById('countrySelect').value,
+                // On pourrait ajouter city_id ou parent_proxy_id ici si nécessaire
+            };
+
+            if (!payload.package_id || !payload.country_id) return alert("Veuillez remplir tous les champs");
+
+            try {
+                btn.disabled = true;
+                btn.textContent = "Création en cours...";
+                
+                const result = await apiCall('/api/create-proxy', {
+                    method: 'POST',
+                    body: JSON.stringify(payload)
+                });
+
+                alert("✅ Proxy créé avec succès !");
+                location.reload(); 
+            } catch (err) {
+                alert("Erreur : " + err.message);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = "CONFIRMER L'ACHAT";
+            }
+        }
+
+        // 4. Afficher les proxies
+        async function loadUserProxies() {
+            const container = document.getElementById('proxyList');
+            try {
+                const proxies = await apiCall('/api/my-proxies');
+                if (proxies.length === 0) {
+                    container.innerHTML = "<p>Vous n'avez pas encore de proxy.</p>";
+                    return;
+                }
+                container.innerHTML = proxies.map(p => `
+                    <div class="proxy-item">
+                        <strong>${p.packageType.toUpperCase()}</strong> | 
+                        <code>${p.host}:${p.port}:${p.username}:${p.password}</code> |
+                        <small>Expire le: ${new Date(p.expiresAt).toLocaleDateString()}</small>
+                    </div>
+                `).join('');
+            } catch (e) {
+                container.innerHTML = "Erreur de chargement.";
+            }
+        }
+
+        function logout() {
+            localStorage.clear();
+            window.location.href = 'login.html';
+        }
+
+        init();
     </script>
 </body>
 </html>
