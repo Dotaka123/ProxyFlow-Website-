@@ -385,18 +385,33 @@ async function loadParentProxies(pkgId, countryId) {
     const select = document.getElementById('parentProxy');
 
     select.innerHTML = '<option value="">Sélectionnez un proxy</option>';
-    proxies.forEach(p => {
-        select.innerHTML += `
-            <option value="${p.id}">
-                ${p.technology} | HTTP:${p.http_port} | SOCKS:${p.socks_port} | Usage:${p.usage}%
-            </option>
-        `;
-    });
+
+    proxies
+        // ✅ seulement ACTIVE
+        .filter(p => p.status === 'ACTIVE')
+        // ✅ usage < 90% OU usage désactivé (-1)
+        .filter(p => p.usage === -1 || p.usage < 90)
+        .forEach(p => {
+
+            // 🎨 Badge techno
+            let techBadge = '⚪';
+            if (p.technology === '5G') techBadge = '🔵';
+            if (p.technology === '4G') techBadge = '🟢';
+            if (p.technology === '3.5G') techBadge = '🟡';
+
+            // 📊 Usage affiché
+            const usageText = p.usage === -1 ? 'N/A' : `${p.usage}%`;
+
+            select.innerHTML += `
+                <option value="${p.id}">
+                    ${techBadge} ${p.technology} | HTTP:${p.http_port} | SOCKS:${p.socks_port} | Usage:${usageText}
+                </option>
+            `;
+        });
 
     select.disabled = false;
     document.getElementById('buyBtn').disabled = false;
 }
-
 /* ================= EVENTS ================= */
 document.getElementById('packageType').addEventListener('change', async e => {
     const pkgId = e.target.value;
