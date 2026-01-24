@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Proxy Shop</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: Arial, sans-serif;
+            background: #f5f5f5;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .header h1 {
+            font-size: 24px;
+        }
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+        .balance {
+            background: rgba(255,255,255,0.2);
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-weight: bold;
+        }
+        .btn-logout {
+            background: rgba(255,255,255,0.3);
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            color: white;
+            cursor: pointer;
+        }
+        .btn-logout:hover {
+            background: rgba(255,255,255,0.4);
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 30px 20px;
+        }
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .card h2 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        .balance-card {
+            text-align: center;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .balance-amount {
+            font-size: 48px;
+            font-weight: bold;
+            margin: 20px 0;
+        }
+        .proxy-list {
+            display: grid;
+            gap: 15px;
+        }
+        .proxy-item {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+        .proxy-item strong {
+            color: #667eea;
+        }
+        .empty {
+            text-align: center;
+            color: #999;
+            padding: 40px;
+        }
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🌐 Proxy Shop</h1>
+        <div class="header-right">
+            <span id="userEmail"></span>
+            <div class="balance" id="headerBalance">$0.00</div>
+            <button class="btn-logout" onclick="logout()">Déconnexion</button>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Carte Balance -->
+        <div class="card balance-card">
+            <h2>💰 Votre Solde</h2>
+            <div class="balance-amount" id="balance">$0.00</div>
+            <p>Contactez l'administrateur pour recharger votre compte</p>
+        </div>
+
+        <!-- Mes Proxies -->
+        <div class="card">
+            <h2>📋 Mes Proxies</h2>
+            <div id="myProxies" class="loading">Chargement...</div>
+        </div>
+
+        <!-- Mes Transactions -->
+        <div class="card">
+            <h2>💳 Historique des Transactions</h2>
+            <div id="myTransactions" class="loading">Chargement...</div>
+        </div>
+    </div>
+
+    <script>
+        // ⚠️ CHANGE CETTE URL PAR TON BACKEND!
+        const API_URL = 'http://localhost:5000';
+
+        // Vérifier si l'utilisateur est connecté
+        const token = localStorage.getItem('token');
+        if (!token) {
+            window.location.href = 'login.html';
+        }
+
+        let user = JSON.parse(localStorage.getItem('user') || '{}');
+
+        // Afficher email et balance
+        document.getElementById('userEmail').textContent = user.email || '';
+        document.getElementById('headerBalance').textContent = '$' + (user.balance || 0).toFixed(2);
+        document.getElementById('balance').textContent = '$' + (user.balance || 0).toFixed(2);
+
+        // Fonction de déconnexion
+        function logout() {
+            localStorage.clear();
+            window.location.href = 'login.html';
+        }
+
+        // Fonction pour faire des requêtes API
+        async function apiCall(endpoint) {
+            const response = await fetch(`${API_URL}${endpoint}`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (!response.ok) {
+                if (response.status === 401) {
+                    logout(); // Token invalide
+                }
+                throw new Error('Erreur API');
+            }
+
+            return await response.json();
+        }
+
+        // Charger les données
+        async function loadData() {
+            try {
+                // Rafraîchir le profil
+                const profile = await apiCall('/api/auth/me');
+                user = profile;
+                localStorage.setItem('user', JSON.stringify(profile));
+                
+                // Mettre à jour l'affichage du solde
+                document.getElementById('headerBalance').textContent = '$' + profile.balance.toFixed(2);
+                document.getElementById('balance').textContent = '$' + profile.balance.toFixed(2);
+
+                // Charger mes proxies
+                const proxies = await apiCall('/api/my-proxies');
+                const proxiesDiv = document.getElementById('myProxies');
+                
+                if (proxies.length === 0) {
+                    proxiesDiv.innerHTML = '<div class="empty">Aucun proxy acheté</div>';
+                } else {
+                    proxiesDiv.innerHTML = '<div class="proxy-list">' + 
+                        proxies.map(p => `
+                            <div class="proxy-item">
+                                <strong>Type:</strong> ${p.packageType || 'N/A'}<br>
+                                <strong>Proxy:</strong> ${p.username}:${p.password}@${p.host}:${p.port}<br>
+                                <strong>Protocol:</strong> ${p.protocol || 'N/A'}<br>
+                                <strong>Expire:</strong> ${p.expiresAt ? new Date(p.expiresAt).toLocaleDateString('fr-FR') : 'N/A'}
+                            </div>
+                        `).join('') + 
+                    '</div>';
+                }
+
+                // Charger transactions
+                const transactions = await apiCall('/api/transactions');
+                const transDiv = document.getElementById('myTransactions');
+                
+                if (transactions.length === 0) {
+                    transDiv.innerHTML = '<div class="empty">Aucune transaction</div>';
+                } else {
+                    transDiv.innerHTML = '<div class="proxy-list">' +
+                        transactions.map(t => `
+                            <div class="proxy-item">
+                                <strong>${t.type === 'credit' ? '➕' : '➖'} ${t.description}</strong><br>
+                                Montant: $${t.amount.toFixed(2)}<br>
+                                Solde après: $${t.balanceAfter.toFixed(2)}<br>
+                                Date: ${new Date(t.createdAt).toLocaleString('fr-FR')}
+                            </div>
+                        `).join('') +
+                    '</div>';
+                }
+
+            } catch (error) {
+                console.error('Erreur:', error);
+            }
+        }
+
+        // Charger les données au démarrage
+        loadData();
+    </script>
+</body>
+</html>
