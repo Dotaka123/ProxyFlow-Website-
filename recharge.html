@@ -54,6 +54,7 @@
             border-radius: 8px;
             border: 2px solid #ddd;
             margin-top: 10px;
+            box-sizing: border-box;
         }
 
         input:focus {
@@ -82,10 +83,16 @@
             background: #667eea;
             color: white;
             margin-top: 20px;
+            transition: 0.3s;
         }
 
         button:hover {
             background: #5568d3;
+        }
+
+        button:disabled {
+            background: #999;
+            cursor: not-allowed;
         }
 
         .warning {
@@ -105,6 +112,23 @@
             color: #155724;
             margin-top: 20px;
             display: none;
+        }
+
+        .error {
+            background: #f8d7da;
+            border-left: 4px solid #dc3545;
+            padding: 15px;
+            border-radius: 8px;
+            color: #721c24;
+            margin-top: 20px;
+            display: none;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            color: #667eea;
+            margin-top: 15px;
         }
 
         .back {
@@ -130,20 +154,18 @@
     </div>
 
     <div class="warning">
-        ⚠️ Après le paiement, la recharge sera validée manuellement par l’administrateur.
+        ⚠️ Après le paiement, la recharge sera validée manuellement par l'administrateur.
     </div>
 
     <div class="box">
         <h2>Étape 1 : Envoyer le paiement</h2>
-        <p>Envoyez le montant souhaité sur FaucetPay à l’adresse suivante :</p>
-        <div class="email-box" id="faucetpayEmail">
-            hugoasmin@gmail.com
-        </div>
+        <p>Envoyez le montant souhaité sur FaucetPay à l'adresse suivante :</p>
+        <div class="email-box">hugoasmin@gmail.com</div>
     </div>
 
     <div class="box">
-        <h2>Étape 2 : Nom d’utilisateur FaucetPay</h2>
-        <p>Entrez **exactement** votre nom d’utilisateur FaucetPay :</p>
+        <h2>Étape 2 : Nom d'utilisateur FaucetPay</h2>
+        <p>Entrez **exactement** votre nom d'utilisateur FaucetPay :</p>
         <input type="text" id="fpUsername" placeholder="Ex: tonnyignace86">
     </div>
 
@@ -153,7 +175,11 @@
         <p style="margin-top:10px;">Recharge minimum : <strong>$0.25</strong></p>
     </div>
 
-    <button onclick="submitRecharge()">📤 J’ai effectué le paiement</button>
+    <button id="submitBtn" onclick="submitRecharge()">📤 J'ai effectué le paiement</button>
+
+    <div class="loading" id="loading">⏳ Envoi en cours...</div>
+
+    <div class="error" id="errorBox"></div>
 
     <div class="success" id="successBox">
         ✅ Demande envoyée avec succès. En attente de validation.
@@ -164,7 +190,7 @@
     </div>
 </div>
 
-    <script>
+<script>
 window.BACKEND_URL = 'https://adminpanel-fj5l.onrender.com';
 
 const user = JSON.parse(localStorage.getItem('user') || '{}');
@@ -172,7 +198,6 @@ const token = localStorage.getItem('token');
 
 console.log('User:', user);
 console.log('Token:', token);
-console.log('Backend URL:', window.BACKEND_URL);
 
 if (!user.email || !token) {
     console.error('Pas d\'utilisateur ou token!');
@@ -231,6 +256,7 @@ async function submitRecharge() {
             return;
         }
 
+        // Succès!
         document.getElementById('successBox').style.display = 'block';
         document.getElementById('fpUsername').value = '';
         document.getElementById('amount').value = '';
@@ -239,7 +265,7 @@ async function submitRecharge() {
         loading.style.display = 'none';
 
     } catch (err) {
-        console.error('Erreur complète:', err);
+        console.error('Erreur:', err);
         showError('Erreur réseau: ' + err.message);
         btn.disabled = false;
         loading.style.display = 'none';
@@ -256,7 +282,7 @@ function showError(msg) {
 function hideError() {
     document.getElementById('errorBox').style.display = 'none';
 }
-    </script>
+</script>
 
 </body>
 </html>
