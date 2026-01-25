@@ -411,6 +411,25 @@ if (!token) window.location.href = 'login.html';
 let user = JSON.parse(localStorage.getItem('user') || '{}');
 let prices = {};
 
+/* ================= UPDATE BALANCE ================= */
+function updateBalance(newBalance) {
+    user.balance = newBalance;
+    localStorage.setItem('user', JSON.stringify(user));
+    document.getElementById('headerBalance').textContent = '$' + newBalance.toFixed(2);
+    document.getElementById('balance').textContent = '$' + newBalance.toFixed(2);
+}
+
+// ✅ RECHARGE USER DATA FROM SERVER
+async function refreshUserBalance() {
+    try {
+        const response = await apiCall('/api/auth/me');
+        updateBalance(response.balance);
+        console.log(`✅ Solde rafraîchi: $${response.balance}`);
+    } catch (error) {
+        console.error('Erreur refresh balance:', error);
+    }
+}
+
 /* ================= UI ================= */
 document.getElementById('userEmail').textContent = user.email || '';
 document.getElementById('headerBalance').textContent = '$' + (user.balance || 0).toFixed(2);
@@ -557,10 +576,8 @@ document.getElementById('buyProxyForm').addEventListener('submit', async (e) => 
             body: JSON.stringify(proxyData)
         });
 
-        user.balance = result.userBalance;
-        localStorage.setItem('user', JSON.stringify(user));
-        document.getElementById('headerBalance').textContent = '$' + result.userBalance.toFixed(2);
-        document.getElementById('balance').textContent = '$' + result.userBalance.toFixed(2);
+        // ✅ MET À JOUR LE SOLDE
+        updateBalance(result.userBalance);
 
         document.getElementById('buyAlert').innerHTML = 
             '<div class="alert alert-success">✅ Proxy acheté avec succès! Voir ci-dessous.</div>';
@@ -577,7 +594,7 @@ document.getElementById('buyProxyForm').addEventListener('submit', async (e) => 
 
     } catch (error) {
         document.getElementById('buyAlert').innerHTML = 
-            `<div class="alert alert-error">❌ Solde insuffisant</div>`;
+            `<div class="alert alert-error">❌ ${error.message}</div>`;
     } finally {
         buyBtn.disabled = false;
         buyBtn.textContent = 'Acheter le Proxy';
@@ -611,154 +628,6 @@ async function loadMyRecharges() {
             container.innerHTML += `
                 <div class="recharge-item ${r.status}">
                     <div class="recharge-info">
-                        <div class="recharge-amount">\$${r.amount.toFixed(2)}</div>
+                        <div class="recharge-amount">$${r.amount.toFixed(2)}</div>
                         <div class="recharge-status ${r.status}">${statusIcon} ${statusText}</div>
-                        <div class="recharge-date">${new Date(r.createdAt).toLocaleDateString('fr-FR')}</div>
-                    </div>
-                </div>
-            `;
-        });
-
-    } catch (error) {
-        container.innerHTML = `<div class="alert alert-error">Erreur: ${error.message}</div>`;
-    }
-}
-
-// Vérifier les notifications de recharge
-async function checkRechargeNotifications() {
-    try {
-        const recharges = await apiCall('/api/my-recharges');
-        const notificationContainer = document.getElementById('rechargeNotifications');
-        
-        recharges.forEach(recharge => {
-            const lastStatus = localStorage.getItem(`recharge_${recharge._id}`);
-            
-            // Si le statut a changé ET n'est plus pending
-            if (lastStatus !== recharge.status && recharge.status !== 'pending') {
-                if (recharge.status === 'approved') {
-                    notificationContainer.innerHTML += `
-                        <div class="alert alert-success" style="display: block;">
-                            ✅ Votre recharge de $${recharge.amount.toFixed(2)} a été approuvée! 
-                            Le solde a été ajouté à votre compte.
-                        </div>
-                    `;
-                    // Mettre à jour le solde
-                    refreshProfile();
-                } else if (recharge.status === 'rejected') {
-                    notificationContainer.innerHTML += `
-                        <div class="alert alert-error" style="display: block;">
-                            ❌ Votre recharge de $${recharge.amount.toFixed(2)} a été rejetée.
-                        </div>
-                    `;
-                }
-                
-                // Marquer comme vu
-                localStorage.setItem(`recharge_${recharge._id}`, recharge.status);
-                
-                // Supprimer la notification après 5 secondes
-                setTimeout(() => {
-                    const alerts = notificationContainer.querySelectorAll('.alert');
-                    if (alerts.length > 0) {
-                        alerts[alerts.length - 1].remove();
-                    }
-                }, 5000);
-            }
-        });
-    } catch (error) {
-        console.error('Erreur notification:', error);
-    }
-}
-
-/* ================= PROFILE ================= */
-function refreshProfile() {
-    document.getElementById('userEmail').textContent = user.email || '';
-    document.getElementById('headerBalance').textContent = '$' + (user.balance || 0).toFixed(2);
-    document.getElementById('balance').textContent = '$' + (user.balance || 0).toFixed(2);
-}
-
-/* ================= PROXIES ================= */
-async function loadMyProxies() {
-    const container = document.getElementById('myProxies');
-    container.innerHTML = 'Chargement...';
-
-    try {
-        const proxies = await apiCall('/api/my-proxies');
-
-        if (!proxies.length) {
-            container.innerHTML = '<div class="empty">Vous n\'avez aucun proxy.</div>';
-            return;
-        }
-
-        container.innerHTML = '';
-        proxies.forEach(p => {
-            container.innerHTML += `
-                <div class="proxy-item">
-                    <strong>Package:</strong> ${p.packageType || 'N/A'} | 
-                    <strong>Durée:</strong> ${p.duration} jours |
-                    <strong>Protocol:</strong> ${p.protocol}<br>
-                    <div class="proxy-credentials">
-                        ${p.host}:${p.port} | ${p.username}:${p.password}
-                    </div>
-                    <small>Expire le: ${new Date(p.expiresAt).toLocaleDateString('fr-FR')}</small>
-                </div>
-            `;
-        });
-
-    } catch (error) {
-        container.innerHTML = `<div class="alert alert-error">Erreur: ${error.message}</div>`;
-    }
-}
-
-/* ================= TRANSACTIONS ================= */
-async function loadTransactions() {
-    const container = document.getElementById('myTransactions');
-    container.innerHTML = 'Chargement...';
-
-    try {
-        const transactions = await apiCall('/api/transactions');
-
-        if (!transactions.length) {
-            container.innerHTML = '<div class="empty">Aucune transaction.</div>';
-            return;
-        }
-
-        container.innerHTML = '';
-        transactions.forEach(t => {
-            let typeEmoji = '💳';
-            if (t.type === 'credit') typeEmoji = '➕';
-            if (t.type === 'debit') typeEmoji = '➖';
-            
-            container.innerHTML += `
-                <div class="proxy-item">
-                    <strong>${typeEmoji} ${t.type.toUpperCase()}</strong> | 
-                    <strong>Montant:</strong> $${t.amount.toFixed(2)} | 
-                    <strong>Description:</strong> ${t.description || '-'}<br>
-                    <small>${new Date(t.createdAt).toLocaleString('fr-FR')}</small>
-                </div>
-            `;
-        });
-
-    } catch (error) {
-        container.innerHTML = `<div class="alert alert-error">Erreur: ${error.message}</div>`;
-    }
-}
-
-/* ================= INIT ================= */
-async function init() {
-    await loadPrices();
-    refreshProfile();
-    await loadMyRecharges();
-    await loadMyProxies();
-    await loadTransactions();
-    
-    // Vérifier les notifications immédiatement
-    await checkRechargeNotifications();
-    
-    // Puis vérifier toutes les 30 secondes
-    setInterval(checkRechargeNotifications, 30000);
-}
-
-init();
-</script>
-</body>
-</html>
+                        <div class="recharge-date">${new Date(r.createdAt).toLocaleDateString('fr-FR')}</di
