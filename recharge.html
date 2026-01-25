@@ -163,14 +163,19 @@
         <a href="dashboard.html">← Retour au dashboard</a>
     </div>
 </div>
-<script>
-// Définis l'URL du backend
+
+    <script>
 window.BACKEND_URL = 'https://adminpanel-fj5l.onrender.com';
 
 const user = JSON.parse(localStorage.getItem('user') || '{}');
 const token = localStorage.getItem('token');
 
+console.log('User:', user);
+console.log('Token:', token);
+console.log('Backend URL:', window.BACKEND_URL);
+
 if (!user.email || !token) {
+    console.error('Pas d\'utilisateur ou token!');
     window.location.href = 'login.html';
 }
 
@@ -180,6 +185,8 @@ document.getElementById('userBalance').textContent = (user.balance || 0).toFixed
 async function submitRecharge() {
     const faucetpayUsername = document.getElementById('fpUsername').value.trim();
     const amount = parseFloat(document.getElementById('amount').value);
+
+    console.log('Recharge request:', { faucetpayUsername, amount });
 
     if (!faucetpayUsername) {
         showError('Remplis le nom d\'utilisateur FaucetPay');
@@ -200,7 +207,10 @@ async function submitRecharge() {
     document.getElementById('successBox').style.display = 'none';
 
     try {
-        const res = await fetch(`${window.BACKEND_URL}/api/recharge-request`, {
+        const url = `${window.BACKEND_URL}/api/recharge-request`;
+        console.log('Envoi vers:', url);
+
+        const res = await fetch(url, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -209,7 +219,10 @@ async function submitRecharge() {
             body: JSON.stringify({ amount, faucetpayUsername })
         });
 
+        console.log('Status:', res.status);
+
         const data = await res.json();
+        console.log('Réponse:', data);
 
         if (!res.ok) {
             showError(data.error || 'Erreur lors de l\'envoi');
@@ -226,7 +239,7 @@ async function submitRecharge() {
         loading.style.display = 'none';
 
     } catch (err) {
-        console.error('Erreur:', err);
+        console.error('Erreur complète:', err);
         showError('Erreur réseau: ' + err.message);
         btn.disabled = false;
         loading.style.display = 'none';
@@ -234,6 +247,7 @@ async function submitRecharge() {
 }
 
 function showError(msg) {
+    console.error('Error:', msg);
     const errorBox = document.getElementById('errorBox');
     errorBox.textContent = '❌ ' + msg;
     errorBox.style.display = 'block';
@@ -242,7 +256,7 @@ function showError(msg) {
 function hideError() {
     document.getElementById('errorBox').style.display = 'none';
 }
-        </script>
+    </script>
 
 </body>
 </html>
