@@ -492,20 +492,15 @@ async function loadCountries(pkgId) {
 /* ================= PARENT PROXIES ================= */
 async function loadParentProxies(pkgId, countryId) {
     try {
-        console.log(`📡 Chargement proxies parents: pkg=${pkgId}, country=${countryId}...`);
-        
         let url = `/api/parent-proxies?pkg_id=${pkgId}`;
         if (countryId) url += `&country_id=${countryId}`;
 
         const proxies = await apiCall(url);
         const select = document.getElementById('parentProxy');
 
-        console.log(`✅ Proxies reçus:`, proxies);
-
         select.innerHTML = '<option value="">Sélectionnez un proxy</option>';
 
         if (!proxies || proxies.length === 0) {
-            console.warn('⚠️ Aucun proxy parent disponible');
             select.innerHTML += '<option disabled>Aucun proxy disponible</option>';
             select.disabled = true;
             return;
@@ -513,14 +508,10 @@ async function loadParentProxies(pkgId, countryId) {
 
         let addedCount = 0;
         proxies.forEach(p => {
-            // Filtre: doit être ACTIVE et pas trop utilisé
             const isActive = p.status === 'ACTIVE' || p.status === 'active';
             const isNotFull = p.usage === -1 || p.usage === null || p.usage < 90;
 
-            if (!isActive || !isNotFull) {
-                console.log(`⏭️ Skipping proxy ${p.id} (status=${p.status}, usage=${p.usage})`);
-                return;
-            }
+            if (!isActive || !isNotFull) return;
 
             let techBadge = '⚪';
             if (p.technology === '5G') techBadge = '🔵';
@@ -538,6 +529,22 @@ async function loadParentProxies(pkgId, countryId) {
             `;
             addedCount++;
         });
+
+        if (addedCount === 0) {
+            select.innerHTML += '<option disabled>Aucun proxy disponible</option>';
+            select.disabled = true;
+        } else {
+            select.disabled = false;
+            document.getElementById('buyBtn').disabled = false;
+        }
+
+    } catch (error) {
+        console.error('❌ Erreur proxies parents:', error);
+        const select = document.getElementById('parentProxy');
+        select.innerHTML = '<option disabled>Erreur chargement</option>';
+        select.disabled = true;
+    }
+}
 
         if (addedCount === 0) {
             select.innerHTML += '<option disabled>Aucun proxy disponible</option>';
