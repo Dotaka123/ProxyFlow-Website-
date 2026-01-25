@@ -163,8 +163,10 @@
         <a href="dashboard.html">← Retour au dashboard</a>
     </div>
 </div>
-
 <script>
+// Définis l'URL du backend
+window.BACKEND_URL = 'https://adminpanel-fj5l.onrender.com';
+
 const user = JSON.parse(localStorage.getItem('user') || '{}');
 const token = localStorage.getItem('token');
 
@@ -179,13 +181,26 @@ async function submitRecharge() {
     const faucetpayUsername = document.getElementById('fpUsername').value.trim();
     const amount = parseFloat(document.getElementById('amount').value);
 
-    if (!faucetpayUsername || !amount || amount < 0.25) {
-        alert('Remplis correctement le nom FaucetPay et le montant (min 0.25$)');
+    if (!faucetpayUsername) {
+        showError('Remplis le nom d\'utilisateur FaucetPay');
         return;
     }
 
+    if (!amount || amount < 0.25) {
+        showError('Le montant doit être au minimum 0.25$');
+        return;
+    }
+
+    const btn = document.getElementById('submitBtn');
+    const loading = document.getElementById('loading');
+    
+    btn.disabled = true;
+    loading.style.display = 'block';
+    hideError();
+    document.getElementById('successBox').style.display = 'none';
+
     try {
-        const res = await fetch('/api/recharge-request', {
+        const res = await fetch(`${window.BACKEND_URL}/api/recharge-request`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -197,20 +212,37 @@ async function submitRecharge() {
         const data = await res.json();
 
         if (!res.ok) {
-            alert(data.error || 'Erreur lors de l’envoi');
+            showError(data.error || 'Erreur lors de l\'envoi');
+            btn.disabled = false;
+            loading.style.display = 'none';
             return;
         }
 
         document.getElementById('successBox').style.display = 'block';
         document.getElementById('fpUsername').value = '';
         document.getElementById('amount').value = '';
+        
+        btn.disabled = false;
+        loading.style.display = 'none';
 
     } catch (err) {
-        alert('Erreur réseau');
+        console.error('Erreur:', err);
+        showError('Erreur réseau: ' + err.message);
+        btn.disabled = false;
+        loading.style.display = 'none';
     }
 }
-</script>
 
+function showError(msg) {
+    const errorBox = document.getElementById('errorBox');
+    errorBox.textContent = '❌ ' + msg;
+    errorBox.style.display = 'block';
+}
+
+function hideError() {
+    document.getElementById('errorBox').style.display = 'none';
+}
+        </script>
 
 </body>
 </html>
