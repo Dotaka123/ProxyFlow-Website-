@@ -176,6 +176,11 @@
             color: #0c5460;
             border: 1px solid #bee5eb;
         }
+        .alert-warning {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeeba;
+        }
         .price-info {
             background: #fff3cd;
             padding: 15px;
@@ -200,6 +205,74 @@
         .copy-btn:hover {
             background: #5568d3;
         }
+
+        /* RECHARGES SECTION */
+        .recharge-item {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .recharge-item.pending {
+            border-left-color: #ffc107;
+            background: #fffbf0;
+        }
+
+        .recharge-item.approved {
+            border-left-color: #28a745;
+            background: #f0f9f7;
+        }
+
+        .recharge-item.rejected {
+            border-left-color: #dc3545;
+            background: #f9f0f0;
+        }
+
+        .recharge-info {
+            flex: 1;
+        }
+
+        .recharge-amount {
+            font-size: 20px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .recharge-status {
+            display: inline-block;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-top: 5px;
+        }
+
+        .recharge-status.pending {
+            background: #ffc107;
+            color: white;
+        }
+
+        .recharge-status.approved {
+            background: #28a745;
+            color: white;
+        }
+
+        .recharge-status.rejected {
+            background: #dc3545;
+            color: white;
+        }
+
+        .recharge-date {
+            font-size: 12px;
+            color: #999;
+            margin-top: 5px;
+        }
+
         @media (max-width: 768px) {
             .header-right {
                 width: 100%;
@@ -207,6 +280,10 @@
             }
             .form-grid {
                 grid-template-columns: 1fr;
+            }
+            .recharge-item {
+                flex-direction: column;
+                align-items: flex-start;
             }
         }
     </style>
@@ -222,6 +299,9 @@
     </div>
 
     <div class="container">
+        <!-- Notifications Recharges -->
+        <div id="rechargeNotifications"></div>
+
         <!-- Carte Balance -->
         <div class="card balance-card">
             <h2>💰 Votre Solde</h2>
@@ -230,6 +310,12 @@
             <a href="recharge.html" style="display: inline-block; background: rgba(255,255,255,0.3); color: white; padding: 12px 30px; border-radius: 8px; text-decoration: none; font-weight: bold;">
                 💳 Recharger mon compte
             </a>
+        </div>
+
+        <!-- Mes Recharges -->
+        <div class="card">
+            <h2>📊 Mes Demandes de Recharge</h2>
+            <div id="myRechargesList" class="loading">Chargement...</div>
         </div>
 
         <!-- Acheter un Proxy -->
@@ -330,8 +416,6 @@ document.getElementById('userEmail').textContent = user.email || '';
 document.getElementById('headerBalance').textContent = '$' + (user.balance || 0).toFixed(2);
 document.getElementById('balance').textContent = '$' + (user.balance || 0).toFixed(2);
 
-
-
 function logout() {
     localStorage.clear();
     window.location.href = 'login.html';
@@ -389,19 +473,14 @@ async function loadParentProxies(pkgId, countryId) {
     select.innerHTML = '<option value="">Sélectionnez un proxy</option>';
 
     proxies
-        // ✅ seulement ACTIVE
         .filter(p => p.status === 'ACTIVE')
-        // ✅ usage < 90% OU usage désactivé (-1)
         .filter(p => p.usage === -1 || p.usage < 90)
         .forEach(p => {
-
-            // 🎨 Badge techno
             let techBadge = '⚪';
             if (p.technology === '5G') techBadge = '🔵';
             if (p.technology === '4G') techBadge = '🟢';
             if (p.technology === '3.5G') techBadge = '🟡';
 
-            // 📊 Usage affiché
             const usageText = p.usage === -1 ? 'N/A' : `${p.usage}%`;
 
             select.innerHTML += `
@@ -414,6 +493,7 @@ async function loadParentProxies(pkgId, countryId) {
     select.disabled = false;
     document.getElementById('buyBtn').disabled = false;
 }
+
 /* ================= EVENTS ================= */
 document.getElementById('packageType').addEventListener('change', async e => {
     const pkgId = e.target.value;
@@ -472,13 +552,11 @@ document.getElementById('buyProxyForm').addEventListener('submit', async (e) => 
             password: document.getElementById('password').value || undefined
         };
 
-        // ✅ Déclaration correcte de la variable
         const result = await apiCall('/api/create-proxy', {
             method: 'POST',
             body: JSON.stringify(proxyData)
         });
 
-        // ✅ Utiliser result ici
         user.balance = result.userBalance;
         localStorage.setItem('user', JSON.stringify(user));
         document.getElementById('headerBalance').textContent = '$' + result.userBalance.toFixed(2);
@@ -499,48 +577,43 @@ document.getElementById('buyProxyForm').addEventListener('submit', async (e) => 
 
     } catch (error) {
         document.getElementById('buyAlert').innerHTML = 
-            `<div class="alert alert-error">❌Solde insuffisant</div>`;
+            `<div class="alert alert-error">❌ Solde insuffisant</div>`;
     } finally {
         buyBtn.disabled = false;
         buyBtn.textContent = 'Acheter le Proxy';
     }
 });
 
-/* ================= INIT ================= */
-    function refreshProfile() {
-    // Mettre à jour l’email
-    document.getElementById('userEmail').textContent = user.email || '';
-    // Mettre à jour le solde
-    document.getElementById('headerBalance').textContent = '$' + (user.balance || 0).toFixed(2);
-    document.getElementById('balance').textContent = '$' + (user.balance || 0).toFixed(2);
-}
-
-async function init() {
-    await loadPrices();
-    refreshProfile();   // juste appeler la fonction
-    await loadMyProxies();
-    await loadTransactions();
-}
-async function loadMyProxies() {
-    const container = document.getElementById('myProxies');
-    container.innerHTML = 'Chargement...';
-
+/* ================= RECHARGES ================= */
+async function loadMyRecharges() {
+    const container = document.getElementById('myRechargesList');
+    
     try {
-        const proxies = await apiCall('/api/my-proxies'); // ton endpoint pour récupérer les proxies
+        const recharges = await apiCall('/api/my-recharges');
 
-        if (!proxies.length) {
-            container.innerHTML = '<div class="empty">Vous n’avez aucun proxy.</div>';
+        if (!recharges.length) {
+            container.innerHTML = '<div class="empty">Aucune demande de recharge.</div>';
             return;
         }
 
         container.innerHTML = '';
-        proxies.forEach(p => {
+        recharges.forEach(r => {
+            let statusIcon = '⏳';
+            let statusText = 'En attente';
+            if (r.status === 'approved') {
+                statusIcon = '✅';
+                statusText = 'Approuvée';
+            } else if (r.status === 'rejected') {
+                statusIcon = '❌';
+                statusText = 'Rejetée';
+            }
+
             container.innerHTML += `
-                <div class="proxy-item">
-                    <strong>Package:</strong> ${p.package_name} | 
-                    <strong>Durée:</strong> ${p.duration} jours<br>
-                    <div class="proxy-credentials">
-                        ${p.ip}:${p.port} | ${p.username}:${p.password}
+                <div class="recharge-item ${r.status}">
+                    <div class="recharge-info">
+                        <div class="recharge-amount">\$${r.amount.toFixed(2)}</div>
+                        <div class="recharge-status ${r.status}">${statusIcon} ${statusText}</div>
+                        <div class="recharge-date">${new Date(r.createdAt).toLocaleDateString('fr-FR')}</div>
                     </div>
                 </div>
             `;
@@ -550,6 +623,93 @@ async function loadMyProxies() {
         container.innerHTML = `<div class="alert alert-error">Erreur: ${error.message}</div>`;
     }
 }
+
+// Vérifier les notifications de recharge
+async function checkRechargeNotifications() {
+    try {
+        const recharges = await apiCall('/api/my-recharges');
+        const notificationContainer = document.getElementById('rechargeNotifications');
+        
+        recharges.forEach(recharge => {
+            const lastStatus = localStorage.getItem(`recharge_${recharge._id}`);
+            
+            // Si le statut a changé ET n'est plus pending
+            if (lastStatus !== recharge.status && recharge.status !== 'pending') {
+                if (recharge.status === 'approved') {
+                    notificationContainer.innerHTML += `
+                        <div class="alert alert-success" style="display: block;">
+                            ✅ Votre recharge de $${recharge.amount.toFixed(2)} a été approuvée! 
+                            Le solde a été ajouté à votre compte.
+                        </div>
+                    `;
+                    // Mettre à jour le solde
+                    refreshProfile();
+                } else if (recharge.status === 'rejected') {
+                    notificationContainer.innerHTML += `
+                        <div class="alert alert-error" style="display: block;">
+                            ❌ Votre recharge de $${recharge.amount.toFixed(2)} a été rejetée.
+                        </div>
+                    `;
+                }
+                
+                // Marquer comme vu
+                localStorage.setItem(`recharge_${recharge._id}`, recharge.status);
+                
+                // Supprimer la notification après 5 secondes
+                setTimeout(() => {
+                    const alerts = notificationContainer.querySelectorAll('.alert');
+                    if (alerts.length > 0) {
+                        alerts[alerts.length - 1].remove();
+                    }
+                }, 5000);
+            }
+        });
+    } catch (error) {
+        console.error('Erreur notification:', error);
+    }
+}
+
+/* ================= PROFILE ================= */
+function refreshProfile() {
+    document.getElementById('userEmail').textContent = user.email || '';
+    document.getElementById('headerBalance').textContent = '$' + (user.balance || 0).toFixed(2);
+    document.getElementById('balance').textContent = '$' + (user.balance || 0).toFixed(2);
+}
+
+/* ================= PROXIES ================= */
+async function loadMyProxies() {
+    const container = document.getElementById('myProxies');
+    container.innerHTML = 'Chargement...';
+
+    try {
+        const proxies = await apiCall('/api/my-proxies');
+
+        if (!proxies.length) {
+            container.innerHTML = '<div class="empty">Vous n\'avez aucun proxy.</div>';
+            return;
+        }
+
+        container.innerHTML = '';
+        proxies.forEach(p => {
+            container.innerHTML += `
+                <div class="proxy-item">
+                    <strong>Package:</strong> ${p.packageType || 'N/A'} | 
+                    <strong>Durée:</strong> ${p.duration} jours |
+                    <strong>Protocol:</strong> ${p.protocol}<br>
+                    <div class="proxy-credentials">
+                        ${p.host}:${p.port} | ${p.username}:${p.password}
+                    </div>
+                    <small>Expire le: ${new Date(p.expiresAt).toLocaleDateString('fr-FR')}</small>
+                </div>
+            `;
+        });
+
+    } catch (error) {
+        container.innerHTML = `<div class="alert alert-error">Erreur: ${error.message}</div>`;
+    }
+}
+
+/* ================= TRANSACTIONS ================= */
 async function loadTransactions() {
     const container = document.getElementById('myTransactions');
     container.innerHTML = 'Chargement...';
@@ -564,11 +724,16 @@ async function loadTransactions() {
 
         container.innerHTML = '';
         transactions.forEach(t => {
+            let typeEmoji = '💳';
+            if (t.type === 'credit') typeEmoji = '➕';
+            if (t.type === 'debit') typeEmoji = '➖';
+            
             container.innerHTML += `
                 <div class="proxy-item">
-                    <strong>ID:</strong> ${t.id} | 
+                    <strong>${typeEmoji} ${t.type.toUpperCase()}</strong> | 
                     <strong>Montant:</strong> $${t.amount.toFixed(2)} | 
-                    <strong>Date:</strong> ${new Date(t.date).toLocaleString()}
+                    <strong>Description:</strong> ${t.description || '-'}<br>
+                    <small>${new Date(t.createdAt).toLocaleString('fr-FR')}</small>
                 </div>
             `;
         });
@@ -577,35 +742,22 @@ async function loadTransactions() {
         container.innerHTML = `<div class="alert alert-error">Erreur: ${error.message}</div>`;
     }
 }
-let myTransactions = [];
 
-async function loadTransactions() {
-    const container = document.getElementById('myTransactions');
-    container.innerHTML = 'Chargement...';
-
-    try {
-        myTransactions = await apiCall('/api/transactions'); // ✅ assignation à variable globale
-
-        if (!myTransactions.length) {
-            container.innerHTML = '<div class="empty">Aucune transaction.</div>';
-            return;
-        }
-
-        container.innerHTML = '';
-        myTransactions.forEach(t => {
-            container.innerHTML += `
-                <div class="proxy-item">
-                    <strong>ID:</strong> ${t.id} | 
-                    <strong>Montant:</strong> $${t.amount.toFixed(2)} | 
-                    <strong>Date:</strong> ${new Date(t.date).toLocaleString()}
-                </div>
-            `;
-        });
-
-    } catch (error) {
-        container.innerHTML = `<div class="alert alert-error">Erreur: ${error.message}</div>`;
-    }
+/* ================= INIT ================= */
+async function init() {
+    await loadPrices();
+    refreshProfile();
+    await loadMyRecharges();
+    await loadMyProxies();
+    await loadTransactions();
+    
+    // Vérifier les notifications immédiatement
+    await checkRechargeNotifications();
+    
+    // Puis vérifier toutes les 30 secondes
+    setInterval(checkRechargeNotifications, 30000);
 }
+
 init();
 </script>
 </body>
