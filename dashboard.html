@@ -324,7 +324,6 @@
             <div id="myTransactions" class="loading">Chargement...</div>
         </div>
     </div>
-
 <script src="js/config.js"></script>
 <script src="js/notifications.js"></script>
 <script>
@@ -520,18 +519,20 @@ async function loadMyProxies() {
         proxies.forEach(p => {
             const date = new Date(p.createdAt).toLocaleDateString();
             const expires = p.expiresAt ? new Date(p.expiresAt).toLocaleString() : 'N/A';
-            
-            // ✅ Fallbacks pour éviter les undefined
-            const packageType = p.packageType || 'UNKNOWN';
-            const protocol = p.protocol || 'HTTP';
+
+            // ✅ FALLBACKS POUR ÉVITER undefined.toUpperCase()
+            const packageType = (p.packageType || 'UNKNOWN').toLowerCase();
+            const protocol = (p.protocol || 'HTTP').toUpperCase();
             const host = p.host || 'N/A';
             const port = p.port || 'N/A';
+            const username = p.username || 'N/A';
+            const password = p.password || 'N/A';
 
             let actionHtml = '';
-            if ((packageType || '').toLowerCase() === 'golden') {
+            if (packageType === 'golden') {
                 actionHtml = `
                     <div style="margin-top: 15px; border-top: 1px dashed #ddd; padding-top: 10px;">
-                        <label style="font-size: 12px; color: #666; margin-bottom: 5px; display: block;">🌍 Changer de pays:</label>
+                        <label style="font-size: 12px; color: #666; margin-bottom: 5px; display: block;">🌍 Changer pays:</label>
                         <div style="display: flex; gap: 5px; margin-top: 5px;">
                             <select id="updateParent-${p._id}" style="padding: 8px; font-size: 12px; flex: 1; border: 2px solid #e0e0e0; border-radius: 5px;">
                                 <option value="">Choisir un nouveau pays...</option>
@@ -546,12 +547,12 @@ async function loadMyProxies() {
                 <div class="proxy-item" id="proxy-${p._id}">
                     <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
                         <strong>📦 ${packageType.toUpperCase()}</strong>
-                        <span class="badge badge-info">${protocol.toUpperCase()}</span>
+                        <span class="badge badge-info">${protocol}</span>
                     </div>
                     <div class="proxy-credentials">
                         ${host}:${port}<br>
-                        User: ${p.username || 'N/A'} | Pass: ${p.password || 'N/A'}
-                        <button class="copy-btn" onclick="copyToClipboard('${host}:${port}:${p.username}:${p.password}')">Copier tout</button>
+                        User: ${username} | Pass: ${password}
+                        <button class="copy-btn" onclick="copyToClipboard('${host}:${port}:${username}:${password}')">Copier tout</button>
                     </div>
                     <div style="font-size: 12px; color: #666;">
                         Acheté le: ${date} | Expire le: ${expires}
@@ -560,7 +561,7 @@ async function loadMyProxies() {
                 </div>
             `;
 
-            if ((packageType || '').toLowerCase() === 'golden') {
+            if (packageType === 'golden') {
                 loadUpdateProxies(p._id);
             }
         });
@@ -589,25 +590,24 @@ async function loadUpdateProxies(proxyId) {
                 const usageText = p.usage === -1 ? 'N/A' : `${p.usage}%`;
                 select.innerHTML += `<option value="${p.id}">${p.technology} | HTTP:${p.http_port} | Usage:${usageText}</option>`;
             });
-    } catch (error) {
-        select.innerHTML = '<option value="">Erreur chargement</option>';
+    } catch (e) {
+        console.error('Erreur loadUpdateProxies:', e);
     }
 }
 
 async function updateProxyLocation(proxyId) {
-    const select = document.getElementById(`updateParent-${proxyId}`);
-    const parentId = select.value;
-
+    const parentId = document.getElementById(`updateParent-${proxyId}`).value;
     if (!parentId) {
-        showToast('Sélectionne un proxy parent', 'error');
+        showToast('Veuillez choisir un nouveau pays', 'error');
         return;
     }
 
     const btn = event.target;
     btn.disabled = true;
-    btn.textContent = '⏳ Changement...';
+    btn.textContent = '⏳...';
 
     try {
+        // ✅ Utilise PUT /proxies/:id/change-parent (pas POST change-location)
         await apiCall(`/api/proxies/${proxyId}/change-parent`, {
             method: 'PUT',
             body: JSON.stringify({ parent_proxy_id: parentId })
@@ -616,7 +616,7 @@ async function updateProxyLocation(proxyId) {
         showToast('Pays changé avec succès! 🌍', 'success');
         await loadMyProxies();
     } catch (error) {
-        showToast(error.message || 'Erreur changement de pays', 'error');
+        showToast(error.message || 'Erreur lors du changement', 'error');
     } finally {
         btn.disabled = false;
         btn.textContent = '✓ OK';
