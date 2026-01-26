@@ -503,28 +503,44 @@ async function loadMyProxies() {
             const password = p.password || 'N/A';
 
             let actionHtml = '';
-            if (packageType === 'golden') {
-                actionHtml = `
-                    <div style="margin-top: 10px;">
-                        <label>🌍 Changer pays:</label>
-                        <div style="display: flex; gap: 5px;">
-                            <select 
-                                id="updateParent-${p._id}" 
-                                style="flex: 1; padding: 8px; border-radius: 5px; border: 1px solid #ddd;"
-                            >
-                                <option value="">Choisir un nouveau pays...</option>
-                            </select>
-                            <button 
-                                type="button"
-                                onclick="updateProxyLocation('${p._id}')"
-                                style="padding: 8px 15px; background: #667eea; color: white; border: none; border-radius: 5px; cursor: pointer;"
-                            >
-                                ✅ OK
-                            </button>
-                        </div>
-                    </div>
-                `;
-            }
+if (packageType === 'golden') {
+    actionHtml = `
+        <div style="margin-top: 10px;">
+            <label>🌍 Changer proxy:</label>
+            <div style="display: flex; gap: 5px; flex-wrap: wrap;">
+                <select 
+                    id="updateCountry-${p._id}" 
+                    onchange="loadParentForChange('${p._id}', this.value)"
+                    style="flex: 1; min-width: 150px; padding: 8px; border-radius: 5px; border: 1px solid #ddd;"
+                >
+                    <option value="">Pays...</option>
+                </select>
+                <select 
+                    id="updateParent-${p._id}" 
+                    style="flex: 1; min-width: 150px; padding: 8px; border-radius: 5px; border: 1px solid #ddd;" 
+                    disabled
+                >
+                    <option value="">Proxy parent...</option>
+                </select>
+                <select 
+                    id="updateProtocol-${p._id}" 
+                    style="flex: 0.8; min-width: 100px; padding: 8px; border-radius: 5px; border: 1px solid #ddd;"
+                >
+                    <option value="">Protocol...</option>
+                    <option value="http">HTTP</option>
+                    <option value="socks">SOCKS</option>
+                </select>
+                <button 
+                    type="button"
+                    onclick="updateProxyLocation('${p._id}')"
+                    style="padding: 8px 15px; background: #667eea; color: white; border: none; border-radius: 5px; cursor: pointer; white-space: nowrap;"
+                >
+                    ✅ OK
+                </button>
+            </div>
+        </div>
+    `;
+}
 
             container.innerHTML += `
                 <div class="proxy-item" id="proxy-${p._id}">
