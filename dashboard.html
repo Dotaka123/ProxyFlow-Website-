@@ -561,56 +561,92 @@ function copyToClipboard(text) {
 }
 
 async function loadUpdateProxies(proxyId) {
-    const select = document.getElementById(`updateParent-${proxyId}`);
-    if (!select) {
-        console.error('❌ Select not found:', `updateParent-${proxyId}`);
+    const selectCountry = document.getElementById(`updateCountry-${proxyId}`);
+    const selectParent = document.getElementById(`updateParent-${proxyId}`);
+    const selectProtocol = document.getElementById(`updateProtocol-${proxyId}`);
+    
+    if (!selectCountry) {
+        console.error('❌ Select not found');
         return;
     }
 
     try {
-        const proxies = await apiCall('/api/parent-proxies?pkg_id=1');
+        // Charge les pays
+        const countries = await apiCall('/api/countries?pkg_id=1');
         
-        select.innerHTML = '<option value="">Choisir un nouveau pays...</option>';
+        selectCountry.innerHTML = '<option value="">Choisir un pays...</option>';
         
-        if (!proxies || proxies.length === 0) {
-            select.innerHTML += '<option disabled>Aucun proxy disponible</option>';
-            return;
-        }
-
-        proxies
-            .filter(p => p.status === 'ACTIVE' && (p.usage === -1 || p.usage < 90))
-            .forEach(p => {
-                const usageText = p.usage === -1 ? 'N/A' : `${p.usage}%`;
-                select.innerHTML += `
-                    <option value="${p.id}">
-                        🌍 ${p.technology} | HTTP:${p.http_port} | Usage:${usageText}
-                    </option>
-                `;
+        if (countries && countries.length > 0) {
+            countries.forEach(c => {
+                selectCountry.innerHTML += `<option value="${c.id}">${c.country_name}</option>`;
             });
+        }
+        
+        selectCountry.disabled = false;
     } catch (e) {
         console.error('❌ Erreur:', e);
-        select.innerHTML = '<option disabled>Erreur chargement</option>';
+        selectCountry.innerHTML = '<option disabled>Erreur chargement</option>';
+    }
+}
+
+async function loadParentForChange(proxyId, countryId) {
+    const selectParent = document.getElementById(`updateParent-${proxyId}`);
+    
+    try {
+        const proxies = await apiCall(`/api/parent-proxies?pkg_id=1&country_id=${countryId}`);
+        
+        selectParent.innerHTML = '<option value="">Choisir un proxy...</option>';
+        
+        if (proxies && proxies.length > 0) {
+            proxies
+                .filter(p => p.status === 'ACTIVE' && (p.usage === -1 || p.usage < 90))
+                .forEach(p => {
+                    const usageText = p.usage === -1 ? 'N/A' : `${p.usage}%`;
+                    selectParent.innerHTML += `
+                        <option value="${p.id}">
+                            ${p.technology} | HTTP:${p.http_port} | Usage:${usageText}
+                        </option>
+                    `;
+                });
+        }
+        
+        selectParent.disabled = false;
+    } catch (e) {
+        console.error('❌ Erreur:', e);
+        selectParent.innerHTML = '<option disabled>Erreur chargement</option>';
     }
 }
 
 async function updateProxyLocation(proxyId) {
-    const select = document.getElementById(`updateParent-${proxyId}`);
-    const parentId = select?.value;
+    const selectParent = document.getElementById(`updateParent-${proxyId}`);
+    const selectProtocol = document.getElementById(`updateProtocol-${proxyId}`);
+    
+    const parentId = selectParent?.value;
+    const protocol = selectProtocol?.value;
     
     if (!parentId) {
-        showToast('Veuillez choisir un nouveau pays', 'error');
+        showToast('Veuillez choisir un proxy parent', 'error');
+        return;
+    }
+    
+    if (!protocol) {
+        showToast('Veuillez choisir un protocol', 'error');
         return;
     }
 
     try {
         await apiCall(`/api/proxies/${proxyId}/change-parent`, {
             method: 'PUT',
-            body: JSON.stringify({ parent_proxy_id: parseInt(parentId) })
+            body: JSON.stringify({ 
+                parent_proxy_id: parseInt(parentId),
+                protocol: protocol.toLowerCase()
+            })
         });
 
-        showToast('Pays changé avec succès! 🌍', 'success');
+        showToast('Proxy changé avec succès! 🌍', 'success');
         await loadMyProxies();
     } catch (error) {
+        console.error('❌ Erreur:', error);
         showToast(error.message || 'Erreur lors du changement', 'error');
     }
 }
