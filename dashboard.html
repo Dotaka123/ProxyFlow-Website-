@@ -635,21 +635,149 @@ async function updateProxyLocation(proxyId) {
     const btn = event.target;
     btn.disabled = true;
     btn.textContent = '⏳...';
+async function loadMyProxies() {
+    const container = document.getElementById('myProxies');
+    container.innerHTML = '<div class="loading">Chargement...</div>';
 
     try {
-        // ✅ Utilise PUT /proxies/:id/change-parent (pas POST change-location)
-        await apiCall(`/api/proxies/${proxyId}/change-parent`, {
-            method: 'PUT',
-            body: JSON.stringify({ parent_proxy_id: parentId })
+        const proxies = await apiCall('/api/my-proxies');
+
+        if (!proxies || !proxies.length) {
+            container.innerHTML = '<div class="empty">Vous n\'avez aucun proxy actif sur Proxy Shop.</div>';
+            return;
+        }
+
+        container.innerHTML = '';
+        proxies.forEach(p => {
+            const date = new Date(p.createdAt).toLocaleDateString();
+            const expires = p.expiresAt ? new Date(p.expiresAt).toLocaleString() : 'N/A';
+
+            // ✅ FALLBACKS POUR ÉVITER undefined.toUpperCase()
+            const packageType = (p.packageType || 'UNKNOWN').toLowerCase();
+            const protocol = (p.protocol || 'HTTP').toUpperCase();
+            const host = p.host || 'N/A';
+            const port = p.port || 'N/A';
+            const username = p.username || 'N/A';
+            const password = p.password || 'N/A';
+
+            let actionHtml = '';
+            if (packageType === 'golden') {
+                actionHtml = `
+                    <div style="margin-top: 10px;">
+                        <label>🌍 Changer pays:</label>
+                        <div style="display: flex; gap: 5px;">
+                            <select 
+                                id="updateParent-${p._id}" 
+                                style="flex: 1; padding: 8px; border-radius: 5px; border: 1px solid #ddd;"
+                            >
+                                <option value="">Choisir un nouveau pays...</option>
+                            </select>
+                            <button 
+                                onclick="updateProxyLocation('${p._id}')"
+                                style="padding: 8px 15px; background: #667eea; color: white; border: none; border-radius: 5px; cursor: pointer;"
+                            >
+                                ✅ OK
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }
+
+            container.innerHTML += `
+                <div class="proxy-item" id="proxy-${p._id}">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                        <strong>📦 ${packageType.toUpperCase()}</strong>
+                        <span class="badge badge-info">${protocol}</span>
+                    </div>
+                    <div class="proxy-credentials">
+                        ${host}:${port}<br>
+                        User: ${username} | Pass: ${password}
+                        <button class="copy-btn" onclick="copyToClipboard('${host}:${port}:${username}:${password}')">Copier tout</button>
+                    </div>
+                    <div style="font-size: 12px; color: #666;">
+                        Acheté le: ${date} | Expire le: ${expires}
+                    </div>
+                    ${actionHtml}
+                </div>
+            `;
+
+            // ✅ Charger les options après l'ajout au DOM
+            if (packageType === 'golden') {
+                setTimeout(() => loadUpdateProxies(p._id), 100);
+            }
         });
 
+    } catch (error) {
+        container.innerHTML = `<div class="alert alert-error">Erreur sur Proxy Shop: ${error.message}</div>`;
+    }
+}
+
+function copyToClipboard(text) {
+    navigator.clipboard.writeText(text).then(() => {
+        showToast('Copié dans le presse-papier!', 'success');
+    });
+}
+
+async function loadUpdateProxies(proxyId) {
+    const select = document.getElementById(`updateParent-${proxyId}`);
+    if (!select) {
+        console.error('❌ Select element not found:', `updateParent-${proxyId}`);
+        return;
+    }
+
+    try {
+        console.log('📡 Chargement des parent proxies pour proxyId:', proxyId);
+        
+        const proxies = await apiCall('/api/parent-proxies?pkg_id=1');
+        
+        console.log('✅ Proxies reçus:', proxies);
+        
+        select.innerHTML = '<option value="">Choisir un nouveau pays...</option>';
+        
+        if (!proxies || proxies.length === 0) {
+            select.innerHTML += '<option value="">Aucun proxy disponible</option>';
+            return;
+        }
+
+        proxies
+            .filter(p => p.status === 'ACTIVE' && (p.usage === -1 || p.usage < 90))
+            .forEach(p => {
+                const usageText = p.usage === -1 ? 'N/A' : `${p.usage}%`;
+                select.innerHTML += `
+                    <option value="${p.id}">
+                        🌍 ${p.technology} | HTTP:${p.http_port} | Usage:${usageText}
+                    </option>
+                `;
+            });
+    } catch (e) {
+        console.error('❌ Erreur loadUpdateProxies:', e);
+        select.innerHTML = '<option value="">Erreur chargement</option>';
+    }
+}
+
+async function updateProxyLocation(proxyId) {
+    const select = document.getElementById(`updateParent-${proxyId}`);
+    const parentId = select?.value;
+    
+    console.log('🔍 Debug:', { proxyId, parentId });
+    
+    if (!parentId) {
+        showToast('Veuillez choisir un nouveau pays', 'error');
+        return;
+    }
+
+    try {
+        const response = await apiCall(`/api/proxies/${proxyId}/change-parent`, {
+            method: 'PUT',
+            body: JSON.stringify({ parent_proxy_id: parseInt(parentId) })
+        });
+
+        console.log('✅ Réponse API:', response);
         showToast('Pays changé avec succès! 🌍', 'success');
         await loadMyProxies();
     } catch (error) {
+        console.error('❌ Erreur complète:', error);
         showToast(error.message || 'Erreur lors du changement', 'error');
-    } finally {
-        btn.disabled = false;
-        btn.textContent = '✓ OK';
     }
 }
 
@@ -675,7 +803,7 @@ async function loadTransactions() {
                     <div style="display: flex; justify-content: space-between; align-items: center;">
                         <div>
                             <span class="badge" style="background: ${t.type === 'credit' ? '#d4edda' : '#f8d7da'}; color: ${t.type === 'credit' ? '#155724' : '#721c24'};">${typeLabel}</span>
-                            <strong style="margin-left: 10px;">$${t.amount.toFixed(2)}</strong>
+                            <strong style="margin-left: 10px;">\$${t.amount.toFixed(2)}</strong>
                         </div>
                         <span style="font-size: 12px; color: #666;">${new Date(t.createdAt).toLocaleString()}</span>
                     </div>
