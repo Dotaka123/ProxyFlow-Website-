@@ -587,22 +587,44 @@ function copyToClipboard(text) {
 
 async function loadUpdateProxies(proxyId) {
     const select = document.getElementById(`updateParent-${proxyId}`);
-    if (!select) return;
+    if (!select) {
+        console.error('❌ Select element not found:', `updateParent-${proxyId}`);
+        return;
+    }
 
     try {
-        const proxies = await apiCall(`/api/parent-proxies?pkg_id=${GOLDEN_PKG_ID}`);
+        console.log('📡 Chargement des parent proxies pour pkg_id: 1');
+        
+        const proxies = await apiCall('/api/parent-proxies?pkg_id=1');
+        
+        console.log('✅ Proxies reçus:', proxies);
+        
         select.innerHTML = '<option value="">Choisir un nouveau pays...</option>';
+        
+        if (!proxies || proxies.length === 0) {
+            select.innerHTML += '<option value="">Aucun proxy disponible</option>';
+            return;
+        }
+
         proxies
             .filter(p => p.status === 'ACTIVE' && (p.usage === -1 || p.usage < 90))
             .forEach(p => {
                 const usageText = p.usage === -1 ? 'N/A' : `${p.usage}%`;
-                select.innerHTML += `<option value="${p.id}">${p.technology} | HTTP:${p.http_port} | Usage:${usageText}</option>`;
+                select.innerHTML += `
+                    <option value="${p.id}">
+                        🌍 ${p.technology} | HTTP:${p.http_port} | Usage:${usageText}
+                    </option>
+                `;
             });
     } catch (e) {
-        console.error('Erreur loadUpdateProxies:', e);
+        console.error('❌ Erreur loadUpdateProxies:', e);
+        select.innerHTML = '<option value="">Erreur chargement</option>';
     }
 }
-
+// Après affichage du proxy
+setTimeout(() => {
+    loadUpdateProxies(proxy._id);  // ✅ Charger les options!
+}, 100);
 async function updateProxyLocation(proxyId) {
     const parentId = document.getElementById(`updateParent-${proxyId}`).value;
     if (!parentId) {
