@@ -509,12 +509,13 @@ if (packageType === 'golden') {
             <label>🌍 Changer proxy:</label>
             <div style="display: flex; gap: 5px; flex-wrap: wrap;">
                 <select 
-                    id="updateCountry-${p._id}" 
-                    onchange="loadParentForChange('${p._id}', this.value)"
-                    style="flex: 1; min-width: 150px; padding: 8px; border-radius: 5px; border: 1px solid #ddd;"
-                >
-                    <option value="">Pays...</option>
-                </select>
+    id="updateCountry-${p._id}" 
+    onchange="loadParentForChange('${p._id}', this.value)"
+    onclick="loadUpdateProxies('${p._id}')"
+    style="flex: 1; min-width: 150px; padding: 8px; border-radius: 5px; border: 1px solid #ddd;"
+>
+    <option value="">Pays...</option>
+</select>
                 <select 
                     id="updateParent-${p._id}" 
                     style="flex: 1; min-width: 150px; padding: 8px; border-radius: 5px; border: 1px solid #ddd;" 
