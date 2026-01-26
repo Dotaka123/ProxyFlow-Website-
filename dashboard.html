@@ -511,7 +511,7 @@ async function loadMyProxies() {
         const proxies = await apiCall('/api/my-proxies');
 
         if (!proxies || !proxies.length) {
-            container.innerHTML = '<div class="empty">Vous n’avez aucun proxy actif sur Proxy Shop.</div>';
+            container.innerHTML = '<div class="empty">Vous n\'avez aucun proxy actif sur Proxy Shop.</div>';
             return;
         }
 
@@ -520,11 +520,15 @@ async function loadMyProxies() {
             const date = new Date(p.createdAt).toLocaleDateString();
             const expires = p.expiresAt ? new Date(p.expiresAt).toLocaleString() : 'N/A';
 
+            // ✅ Utiliser protocol au lieu de packageType
+            const protocolDisplay = (p.protocol || 'HTTP').toUpperCase();
+            const packageDisplay = (p.packageType || 'UNKNOWN').toUpperCase();
+
             container.innerHTML += `
                 <div class="proxy-item">
                     <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
-                        <strong>📦 ${p.packageType.toUpperCase()}</strong>
-                        <span class="badge badge-info">${p.protocol.toUpperCase()}</span>
+                        <strong>📦 ${packageDisplay}</strong>
+                        <span class="badge badge-info">${protocolDisplay}</span>
                     </div>
                     <div class="proxy-credentials">
                         ${p.host}:${p.port}<br>
