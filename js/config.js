@@ -45,9 +45,9 @@ function showToast(message, type = 'info') {
     }
 
     const toast = document.createElement('div');
-    toast.className = toast ${type};
+    toast.className = `toast ${type}`; // ✅ Corrected: backticks
     const icon = type === 'success' ? '✅' : (type === 'error' ? '❌' : 'ℹ️');
-    toast.innerHTML = <span>${icon}</span> <span>${message}</span>;
+    toast.innerHTML = `<span>${icon}</span> <span>${message}</span>`; // ✅ Corrected: backticks
     
     container.appendChild(toast);
     setTimeout(() => {
@@ -64,7 +64,7 @@ async function apiCall(endpoint, options = {}) {
         method: options.method || 'GET',
         headers: {
             'Content-Type': 'application/json',
-            ...(token ? { 'Authorization': Bearer ${token} } : {})
+            ...(token ? { 'Authorization': `Bearer ${token}` } : {}) // ✅ Corrected: backticks
         },
         body: options.body ? JSON.stringify(options.body) : null
     };
