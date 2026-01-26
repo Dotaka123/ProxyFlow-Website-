@@ -4,16 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Recharger mon compte - Proxy Shop</title>
+    <link rel="stylesheet" href="css/style.css">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-
         body {
             font-family: Arial, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
             padding: 20px;
         }
-
         .container {
             max-width: 700px;
             margin: 50px auto;
@@ -22,267 +21,69 @@
             padding: 40px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.2);
         }
-
-        h1 {
-            text-align: center;
-            color: #667eea;
-            margin-bottom: 30px;
-        }
-
-        .box {
-            background: #f8f9fa;
-            padding: 20px;
-            border-radius: 10px;
-            margin-bottom: 20px;
-            border-left: 5px solid #667eea;
-        }
-
-        .box h2 {
-            margin-bottom: 10px;
-            color: #333;
-        }
-
-        .box p {
-            color: #555;
-            margin-bottom: 10px;
-        }
-
-        input {
-            width: 100%;
-            padding: 12px;
-            font-size: 16px;
-            border-radius: 8px;
-            border: 2px solid #ddd;
-            margin-top: 10px;
-            box-sizing: border-box;
-        }
-
-        input:focus {
-            outline: none;
-            border-color: #667eea;
-        }
-
-        .email-box {
-            background: #e3f2fd;
-            padding: 15px;
-            border-radius: 8px;
-            text-align: center;
-            font-weight: bold;
-            font-size: 18px;
-            color: #1976d2;
-            margin-top: 10px;
-        }
-
-        button {
-            width: 100%;
-            padding: 15px;
-            font-size: 16px;
-            border: none;
-            border-radius: 10px;
-            cursor: pointer;
-            background: #667eea;
-            color: white;
-            margin-top: 20px;
-            transition: 0.3s;
-        }
-
-        button:hover {
-            background: #5568d3;
-        }
-
-        button:disabled {
-            background: #999;
-            cursor: not-allowed;
-        }
-
-        .warning {
-            background: #fff3cd;
-            border-left: 4px solid #ffc107;
-            padding: 15px;
-            border-radius: 8px;
-            color: #856404;
-            margin-bottom: 20px;
-        }
-
-        .success {
-            background: #d4edda;
-            border-left: 4px solid #28a745;
-            padding: 15px;
-            border-radius: 8px;
-            color: #155724;
-            margin-top: 20px;
-            display: none;
-        }
-
-        .error {
-            background: #f8d7da;
-            border-left: 4px solid #dc3545;
-            padding: 15px;
-            border-radius: 8px;
-            color: #721c24;
-            margin-top: 20px;
-            display: none;
-        }
-
-        .loading {
-            display: none;
-            text-align: center;
-            color: #667eea;
-            margin-top: 15px;
-        }
-
-        .back {
-            text-align: center;
-            margin-top: 30px;
-        }
-
-        .back a {
-            color: #555;
-            text-decoration: none;
-            font-weight: bold;
-        }
+        h1 { text-align: center; color: #667eea; margin-bottom: 30px; }
+        .box { background: #f8f9fa; padding: 20px; border-radius: 10px; margin-bottom: 20px; border-left: 5px solid #667eea; }
+        .email-box { background: #e3f2fd; padding: 15px; border-radius: 8px; text-align: center; font-weight: bold; font-size: 18px; color: #1976d2; margin-top: 10px; }
+        input { width: 100%; padding: 12px; font-size: 16px; border-radius: 8px; border: 2px solid #ddd; margin-top: 10px; }
+        button { width: 100%; padding: 15px; font-size: 16px; border: none; border-radius: 10px; cursor: pointer; background: #667eea; color: white; margin-top: 20px; }
     </style>
 </head>
 <body>
 
 <div class="container">
     <h1>💰 Recharger mon compte</h1>
-
     <div class="box">
         <p><strong>Email :</strong> <span id="userEmail">...</span></p>
         <p><strong>Solde actuel :</strong> $<span id="userBalance">0.00</span></p>
     </div>
-
-    <div class="warning">
-        ⚠️ Après le paiement, la recharge sera validée manuellement par l'administrateur.
-    </div>
-
     <div class="box">
         <h2>Étape 1 : Envoyer le paiement</h2>
-        <p>Envoyez le montant souhaité sur FaucetPay à l'adresse suivante :</p>
+        <p>Envoyez le montant sur FaucetPay à :</p>
         <div class="email-box">hugoasmin@gmail.com</div>
     </div>
-
     <div class="box">
-        <h2>Étape 2 : Nom d'utilisateur FaucetPay</h2>
-        <p>Entrez **exactement** votre nom d'utilisateur FaucetPay :</p>
+        <h2>Étape 2 : Nom d’utilisateur FaucetPay</h2>
         <input type="text" id="fpUsername" placeholder="Ex: tonnyignace86">
     </div>
-
     <div class="box">
         <h2>Étape 3 : Montant envoyé ($)</h2>
         <input type="number" id="amount" step="0.01" min="0.25" placeholder="0.25">
-        <p style="margin-top:10px;">Recharge minimum : <strong>$0.25</strong></p>
     </div>
-
-    <button id="submitBtn" onclick="submitRecharge()">📤 J'ai effectué le paiement</button>
-
-    <div class="loading" id="loading">⏳ Envoi en cours...</div>
-
-    <div class="error" id="errorBox"></div>
-
-    <div class="success" id="successBox">
-        ✅ Demande envoyée avec succès. En attente de validation.
-    </div>
-
-    <div class="back">
-        <a href="dashboard.html">← Retour au dashboard</a>
+    <button onclick="handleRecharge()">📤 J’ai effectué le paiement</button>
+    <div class="back" style="text-align: center; margin-top: 20px;">
+        <a href="dashboard.html" style="text-decoration: none; color: #667eea; font-weight: bold;">← Retour</a>
     </div>
 </div>
 
+<script src="js/config.js"></script>
 <script>
-window.BACKEND_URL = 'https://adminpanel-fj5l.onrender.com';
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    if (!user.email) window.location.href = 'login.html';
 
-const user = JSON.parse(localStorage.getItem('user') || '{}');
-const token = localStorage.getItem('token');
+    document.getElementById('userEmail').textContent = user.email;
+    document.getElementById('userBalance').textContent = (user.balance || 0).toFixed(2);
 
-console.log('User:', user);
-console.log('Token:', token);
+    async function handleRecharge() {
+        const faucetpayUsername = document.getElementById('fpUsername').value.trim();
+        const amount = parseFloat(document.getElementById('amount').value);
 
-if (!user.email || !token) {
-    console.error('Pas d\'utilisateur ou token!');
-    window.location.href = 'login.html';
-}
-
-document.getElementById('userEmail').textContent = user.email;
-document.getElementById('userBalance').textContent = (user.balance || 0).toFixed(2);
-
-async function submitRecharge() {
-    const faucetpayUsername = document.getElementById('fpUsername').value.trim();
-    const amount = parseFloat(document.getElementById('amount').value);
-
-    console.log('Recharge request:', { faucetpayUsername, amount });
-
-    if (!faucetpayUsername) {
-        showError('Remplis le nom d\'utilisateur FaucetPay');
-        return;
-    }
-
-    if (!amount || amount < 0.25) {
-        showError('Le montant doit être au minimum 0.25$');
-        return;
-    }
-
-    const btn = document.getElementById('submitBtn');
-    const loading = document.getElementById('loading');
-    
-    btn.disabled = true;
-    loading.style.display = 'block';
-    hideError();
-    document.getElementById('successBox').style.display = 'none';
-
-    try {
-        const url = `${window.BACKEND_URL}/api/recharge-request`;
-        console.log('Envoi vers:', url);
-
-        const res = await fetch(url, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify({ amount, faucetpayUsername })
-        });
-
-        console.log('Status:', res.status);
-
-        const data = await res.json();
-        console.log('Réponse:', data);
-
-        if (!res.ok) {
-            showError(data.error || 'Erreur lors de l\'envoi');
-            btn.disabled = false;
-            loading.style.display = 'none';
+        if (!faucetpayUsername || isNaN(amount) || amount < 0.25) {
+            showToast('Veuillez remplir correctement les champs (min $0.25)', 'error');
             return;
         }
 
-        // Succès!
-        document.getElementById('successBox').style.display = 'block';
-        document.getElementById('fpUsername').value = '';
-        document.getElementById('amount').value = '';
-        
-        btn.disabled = false;
-        loading.style.display = 'none';
-
-    } catch (err) {
-        console.error('Erreur:', err);
-        showError('Erreur réseau: ' + err.message);
-        btn.disabled = false;
-        loading.style.display = 'none';
+        try {
+            await apiCall('/api/recharge-request', {
+                method: 'POST',
+                body: { amount, faucetpayUsername }
+            });
+            showToast('Demande envoyée ! En attente de validation.', 'success');
+            document.getElementById('fpUsername').value = '';
+            document.getElementById('amount').value = '';
+        } catch (err) {
+            // L'erreur est déjà affichée par apiCall
+        }
     }
-}
-
-function showError(msg) {
-    console.error('Error:', msg);
-    const errorBox = document.getElementById('errorBox');
-    errorBox.textContent = '❌ ' + msg;
-    errorBox.style.display = 'block';
-}
-
-function hideError() {
-    document.getElementById('errorBox').style.display = 'none';
-}
 </script>
-
 </body>
 </html>
