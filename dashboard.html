@@ -201,6 +201,17 @@
         .copy-btn:hover {
             background: #5568d3;
         }
+        .badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .badge-info {
+            background: #e3f2fd;
+            color: #1976d2;
+        }
         @media (max-width: 768px) {
             .header-right {
                 width: 100%;
@@ -260,7 +271,7 @@
                         <select id="protocol" required>
                             <option value="">Sélectionnez un protocol</option>
                             <option value="http">HTTP</option>
-                            <option value="socks5">SOCKS5</option>
+                            <option value="socks">SOCKS</option>
                         </select>
                     </div>
 
@@ -281,13 +292,13 @@
 
                 <div class="form-grid">
                     <div class="form-group">
-                        <label>Username *</label>
-                        <input type="text" id="username" required placeholder="Entrez un nom d'utilisateur">
+                        <label>Username (optionnel)</label>
+                        <input type="text" id="username" placeholder="Laisser vide pour auto-générer">
                     </div>
 
                     <div class="form-group">
-                        <label>Password *</label>
-                        <input type="text" id="password" required placeholder="Entrez un mot de passe">
+                        <label>Password (optionnel)</label>
+                        <input type="text" id="password" placeholder="Laisser vide pour auto-générer">
                     </div>
                 </div>
 
@@ -316,13 +327,14 @@
 
 <script src="js/config.js"></script>
 <script src="js/notifications.js"></script>
-    <script>
+<script>
 /* ================= AUTH ================= */
 const token = localStorage.getItem('token');
 if (!token) window.location.href = 'login.html';
 
 let user = JSON.parse(localStorage.getItem('user') || '{}');
 let prices = {};
+let GOLDEN_PKG_ID = 1;
 
 /* ================= UI ================= */
 function logout() {
@@ -333,6 +345,7 @@ function logout() {
 /* ================= PRICES ================= */
 async function loadPrices() {
     prices = await apiCall('/api/prices');
+    GOLDEN_PKG_ID = prices?.golden?.package_id || 1;
 }
 
 /* ================= COUNTRIES ================= */
@@ -342,11 +355,7 @@ async function loadCountries(pkgId) {
 
     select.innerHTML = '<option value="">Sélectionnez un pays</option>';
     countries.forEach(c => {
-        select.innerHTML += `
-            <option value="${c.id}">
-                ${c.country_name}
-            </option>
-        `;
+        select.innerHTML += `<option value="${c.id}">${c.country_name}</option>`;
     });
     select.disabled = false;
 }
@@ -362,19 +371,14 @@ async function loadParentProxies(pkgId, countryId) {
     select.innerHTML = '<option value="">Sélectionnez un proxy</option>';
 
     proxies
-        // ✅ seulement ACTIVE
         .filter(p => p.status === 'ACTIVE')
-        // ✅ usage < 90% OU usage désactivé (-1)
         .filter(p => p.usage === -1 || p.usage < 90)
         .forEach(p => {
-
-            // 🎨 Badge techno
             let techBadge = '⚪';
             if (p.technology === '5G') techBadge = '🔵';
             if (p.technology === '4G') techBadge = '🟢';
             if (p.technology === '3.5G') techBadge = '🟡';
 
-            // 📊 Usage affiché
             const usageText = p.usage === -1 ? 'N/A' : `${p.usage}%`;
 
             select.innerHTML += `
@@ -387,6 +391,7 @@ async function loadParentProxies(pkgId, countryId) {
     select.disabled = false;
     document.getElementById('buyBtn').disabled = false;
 }
+
 /* ================= EVENTS ================= */
 document.getElementById('packageType').addEventListener('change', async e => {
     const pkgId = e.target.value;
@@ -445,13 +450,11 @@ document.getElementById('buyProxyForm').addEventListener('submit', async (e) => 
             password: document.getElementById('password').value || undefined
         };
 
-        // ✅ Déclaration correcte de la variable
         const result = await apiCall('/api/create-proxy', {
             method: 'POST',
             body: JSON.stringify(proxyData)
         });
 
-        // ✅ Utiliser result ici
         user.balance = result.userBalance;
         localStorage.setItem('user', JSON.stringify(user));
         refreshProfile();
@@ -476,10 +479,8 @@ document.getElementById('buyProxyForm').addEventListener('submit', async (e) => 
 });
 
 /* ================= INIT ================= */
-    function refreshProfile() {
-    // Mettre à jour l’email
+function refreshProfile() {
     document.getElementById('userEmail').textContent = user.email || '';
-    // Mettre à jour le solde
     document.getElementById('headerBalance').textContent = '$' + (user.balance || 0).toFixed(2);
     document.getElementById('balance').textContent = '$' + (user.balance || 0).toFixed(2);
 }
@@ -511,7 +512,7 @@ async function loadMyProxies() {
         const proxies = await apiCall('/api/my-proxies');
 
         if (!proxies || !proxies.length) {
-            container.innerHTML = '<div class="empty">Vous n’avez aucun proxy actif sur Proxy Shop.</div>';
+            container.innerHTML = '<div class="empty">Vous n\'avez aucun proxy actif sur Proxy Shop.</div>';
             return;
         }
 
@@ -519,17 +520,23 @@ async function loadMyProxies() {
         proxies.forEach(p => {
             const date = new Date(p.createdAt).toLocaleDateString();
             const expires = p.expiresAt ? new Date(p.expiresAt).toLocaleString() : 'N/A';
+            
+            // ✅ Fallbacks pour éviter les undefined
+            const packageType = p.packageType || 'UNKNOWN';
+            const protocol = p.protocol || 'HTTP';
+            const host = p.host || 'N/A';
+            const port = p.port || 'N/A';
 
             let actionHtml = '';
-            if (p.packageType === 'golden') {
+            if ((packageType || '').toLowerCase() === 'golden') {
                 actionHtml = `
                     <div style="margin-top: 15px; border-top: 1px dashed #ddd; padding-top: 10px;">
-                        <label style="font-size: 12px; color: #666;">Changer pays (Golden uniquement):</label>
+                        <label style="font-size: 12px; color: #666; margin-bottom: 5px; display: block;">🌍 Changer de pays:</label>
                         <div style="display: flex; gap: 5px; margin-top: 5px;">
-                            <select id="updateParent-${p._id}" class="form-group" style="padding: 5px; font-size: 12px; margin-bottom: 0;">
+                            <select id="updateParent-${p._id}" style="padding: 8px; font-size: 12px; flex: 1; border: 2px solid #e0e0e0; border-radius: 5px;">
                                 <option value="">Choisir un nouveau pays...</option>
                             </select>
-                            <button class="btn btn-primary" style="padding: 5px 10px; font-size: 12px; width: auto;" onclick="updateProxyLocation(event, '${p._id}')">OK</button>
+                            <button class="btn btn-primary" style="padding: 8px 15px; font-size: 12px; width: auto;" onclick="updateProxyLocation('${p._id}')">✓ OK</button>
                         </div>
                     </div>
                 `;
@@ -538,13 +545,13 @@ async function loadMyProxies() {
             container.innerHTML += `
                 <div class="proxy-item" id="proxy-${p._id}">
                     <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
-                        <strong class="brand-name-color">📦 ${p.packageType.toUpperCase()}</strong>
-                        <span class="badge badge-info">${p.protocol.toUpperCase()}</span>
+                        <strong>📦 ${packageType.toUpperCase()}</strong>
+                        <span class="badge badge-info">${protocol.toUpperCase()}</span>
                     </div>
                     <div class="proxy-credentials">
-                        ${p.host}:${p.port}<br>
-                        User: ${p.username} | Pass: ${p.password}
-                        <button class="copy-btn" onclick="copyToClipboard('${p.host}:${p.port}:${p.username}:${p.password}')">Copier tout</button>
+                        ${host}:${port}<br>
+                        User: ${p.username || 'N/A'} | Pass: ${p.password || 'N/A'}
+                        <button class="copy-btn" onclick="copyToClipboard('${host}:${port}:${p.username}:${p.password}')">Copier tout</button>
                     </div>
                     <div style="font-size: 12px; color: #666;">
                         Acheté le: ${date} | Expire le: ${expires}
@@ -553,8 +560,7 @@ async function loadMyProxies() {
                 </div>
             `;
 
-            // Charger les pays pour le sélecteur d'update si c'est un golden
-            if (p.packageType === 'golden') {
+            if ((packageType || '').toLowerCase() === 'golden') {
                 loadUpdateProxies(p._id);
             }
         });
@@ -566,44 +572,54 @@ async function loadMyProxies() {
 
 function copyToClipboard(text) {
     navigator.clipboard.writeText(text).then(() => {
-        showToast('Copié dans le presse-papier sur Proxy Shop !', 'success');
+        showToast('Copié dans le presse-papier!', 'success');
     });
 }
 
 async function loadUpdateProxies(proxyId) {
     const select = document.getElementById(`updateParent-${proxyId}`);
+    if (!select) return;
+
     try {
-        // Pour les golden on peut charger n'importe quel pays
-        const proxies = await apiCall('/api/parent-proxies?pkg_id=1');
+        const proxies = await apiCall(`/api/parent-proxies?pkg_id=${GOLDEN_PKG_ID}`);
         select.innerHTML = '<option value="">Choisir un nouveau pays...</option>';
         proxies
             .filter(p => p.status === 'ACTIVE' && (p.usage === -1 || p.usage < 90))
             .forEach(p => {
-                select.innerHTML += `<option value="${p.id}">${p.technology} | HTTP:${p.http_port} | Usage:${p.usage === -1 ? 'N/A' : p.usage + '%'}</option>`;
+                const usageText = p.usage === -1 ? 'N/A' : `${p.usage}%`;
+                select.innerHTML += `<option value="${p.id}">${p.technology} | HTTP:${p.http_port} | Usage:${usageText}</option>`;
             });
-    } catch (e) {
-        console.error(e);
+    } catch (error) {
+        select.innerHTML = '<option value="">Erreur chargement</option>';
     }
 }
 
-async function updateProxyLocation(event, proxyDbId) {
-    const parentId = document.getElementById(`updateParent-${proxyDbId}`).value;
-    if (!parentId) return showToast('Veuillez choisir un nouveau pays', 'error');
+async function updateProxyLocation(proxyId) {
+    const select = document.getElementById(`updateParent-${proxyId}`);
+    const parentId = select.value;
+
+    if (!parentId) {
+        showToast('Sélectionne un proxy parent', 'error');
+        return;
+    }
+
+    const btn = event.target;
+    btn.disabled = true;
+    btn.textContent = '⏳ Changement...';
 
     try {
-        const btn = event.target;
-        btn.disabled = true;
-        btn.textContent = '...';
-
-        const result = await apiCall(`/api/proxies/${proxyDbId}/change-location`, {
-            method: 'POST',
+        await apiCall(`/api/proxies/${proxyId}/change-parent`, {
+            method: 'PUT',
             body: JSON.stringify({ parent_proxy_id: parentId })
         });
 
-        showToast(result.message, 'success');
+        showToast('Pays changé avec succès! 🌍', 'success');
         await loadMyProxies();
     } catch (error) {
-        showToast(error.message || 'Erreur lors du changement', 'error');
+        showToast(error.message || 'Erreur changement de pays', 'error');
+    } finally {
+        btn.disabled = false;
+        btn.textContent = '✓ OK';
     }
 }
 
@@ -628,7 +644,7 @@ async function loadTransactions() {
                 <div class="proxy-item" style="border-left-color: ${t.type === 'credit' ? '#4caf50' : '#f44336'}">
                     <div style="display: flex; justify-content: space-between; align-items: center;">
                         <div>
-                            <span class="badge ${typeClass}">${typeLabel}</span>
+                            <span class="badge" style="background: ${t.type === 'credit' ? '#d4edda' : '#f8d7da'}; color: ${t.type === 'credit' ? '#155724' : '#721c24'};">${typeLabel}</span>
                             <strong style="margin-left: 10px;">$${t.amount.toFixed(2)}</strong>
                         </div>
                         <span style="font-size: 12px; color: #666;">${new Date(t.createdAt).toLocaleString()}</span>
@@ -644,6 +660,7 @@ async function loadTransactions() {
         container.innerHTML = `<div class="alert alert-error">Erreur sur Proxy Shop: ${error.message}</div>`;
     }
 }
+
 init();
 </script>
 </body>
