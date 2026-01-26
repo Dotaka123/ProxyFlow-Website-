@@ -523,13 +523,14 @@ if (packageType === 'golden') {
                     <option value="">Proxy parent...</option>
                 </select>
                 <select 
-                    id="updateProtocol-${p._id}" 
-                    style="flex: 0.8; min-width: 100px; padding: 8px; border-radius: 5px; border: 1px solid #ddd;"
-                >
-                    <option value="">Protocol...</option>
-                    <option value="http">HTTP</option>
-                    <option value="socks">SOCKS</option>
-                </select>
+    id="updateProtocol-${p._id}" 
+    style="flex: 0.8; min-width: 100px; padding: 8px; border-radius: 5px; border: 1px solid #ddd;"
+    required
+>
+    <option value="">Protocol...</option>
+    <option value="http">HTTP</option>
+    <option value="socks">SOCKS</option>
+</select>
                 <button 
                     type="button"
                     onclick="updateProxyLocation('${p._id}')"
