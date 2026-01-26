@@ -6,33 +6,52 @@
     <title>Dashboard - Proxy Shop</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
+        
         body {
-            font-family: Arial, sans-serif;
-            background: #f5f5f5;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f0f2f5;
+            color: #333;
         }
+
         .header {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
-            padding: 20px;
+            padding: 25px 40px;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
             flex-wrap: wrap;
-            gap: 10px;
+            gap: 20px;
         }
-        .header h1 { font-size: 24px; }
+
+        .header h1 {
+            font-size: 28px;
+            font-weight: 600;
+        }
+
         .header-right {
             display: flex;
             align-items: center;
-            gap: 20px;
+            gap: 25px;
             flex-wrap: wrap;
         }
-        .balance {
+
+        .user-info {
             background: rgba(255,255,255,0.2);
             padding: 10px 20px;
             border-radius: 20px;
-            font-weight: bold;
+            font-size: 14px;
         }
+
+        .balance-badge {
+            background: rgba(255,255,255,0.3);
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 16px;
+        }
+
         .btn-logout {
             background: rgba(255,255,255,0.3);
             border: none;
@@ -40,236 +59,433 @@
             border-radius: 8px;
             color: white;
             cursor: pointer;
+            font-weight: 500;
+            transition: 0.3s;
         }
-        .btn-logout:hover { background: rgba(255,255,255,0.4); }
+
+        .btn-logout:hover {
+            background: rgba(255,255,255,0.5);
+        }
+
         .container {
             max-width: 1200px;
             margin: 0 auto;
             padding: 30px 20px;
         }
+
         .card {
             background: white;
-            border-radius: 15px;
+            border-radius: 12px;
             padding: 30px;
             margin-bottom: 30px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            border-top: 4px solid #667eea;
         }
+
         .card h2 {
             color: #333;
-            margin-bottom: 20px;
+            margin-bottom: 25px;
             font-size: 22px;
+            font-weight: 600;
         }
+
         .balance-card {
-            text-align: center;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
+            text-align: center;
+            border-top: none;
         }
+
         .balance-amount {
-            font-size: 48px;
+            font-size: 56px;
             font-weight: bold;
             margin: 20px 0;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
+
+        .balance-card a {
+            display: inline-block;
+            background: rgba(255,255,255,0.25);
+            color: white;
+            padding: 12px 30px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: 0.3s;
+            margin-top: 15px;
+        }
+
+        .balance-card a:hover {
+            background: rgba(255,255,255,0.35);
+        }
+
         .form-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
             gap: 20px;
             margin-bottom: 20px;
         }
+
         .form-group {
-            margin-bottom: 15px;
+            display: flex;
+            flex-direction: column;
         }
+
         .form-group label {
-            display: block;
             margin-bottom: 8px;
-            color: #666;
-            font-weight: 500;
+            color: #555;
+            font-weight: 600;
+            font-size: 14px;
         }
-        .form-group select,
-        .form-group input {
-            width: 100%;
-            padding: 12px;
+
+        .form-group input,
+        .form-group select {
+            padding: 12px 15px;
             border: 2px solid #e0e0e0;
             border-radius: 8px;
             font-size: 14px;
+            transition: 0.3s;
+            font-family: inherit;
         }
-        .form-group select:focus,
-        .form-group input:focus {
+
+        .form-group input:focus,
+        .form-group select:focus {
             outline: none;
             border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
         }
+
+        .form-group input:disabled,
+        .form-group select:disabled {
+            background: #f5f5f5;
+            color: #999;
+            cursor: not-allowed;
+        }
+
         .btn {
             padding: 12px 24px;
             border: none;
             border-radius: 8px;
             cursor: pointer;
             font-size: 16px;
+            font-weight: 600;
             transition: all 0.3s;
-            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
+
         .btn-primary {
-            background: #667eea;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             width: 100%;
         }
-        .btn-primary:hover {
-            background: #5568d3;
+
+        .btn-primary:hover:not(:disabled) {
             transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
         }
+
         .btn-primary:disabled {
             background: #ccc;
             cursor: not-allowed;
+            transform: none;
         }
-        .proxy-item {
+
+        .price-info {
+            background: linear-gradient(135deg, #fff3cd 0%, #ffe69c 100%);
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            border-left: 4px solid #ffc107;
+            display: none;
+        }
+
+        .price-info.show {
+            display: block;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .price-info strong {
+            color: #856404;
+            font-size: 20px;
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+            animation: slideIn 0.3s ease;
+        }
+
+        .alert.show {
+            display: block;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border-left: 4px solid #28a745;
+        }
+
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border-left: 4px solid #dc3545;
+        }
+
+        .item-card {
             background: #f8f9fa;
             padding: 20px;
             border-radius: 8px;
             border-left: 4px solid #667eea;
             margin-bottom: 15px;
+            transition: 0.3s;
         }
-        .proxy-item strong { color: #667eea; }
-        .proxy-credentials {
+
+        .item-card:hover {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .item-card strong {
+            color: #667eea;
+            font-size: 16px;
+        }
+
+        .item-card p {
+            margin: 8px 0;
+            color: #666;
+            font-size: 14px;
+        }
+
+        .credentials {
             background: #e3f2fd;
-            padding: 10px;
-            border-radius: 5px;
+            padding: 12px;
+            border-radius: 6px;
             margin: 10px 0;
-            font-family: monospace;
+            font-family: 'Courier New', monospace;
             word-break: break-all;
+            font-size: 13px;
+            line-height: 1.6;
         }
-        .empty {
+
+        .status-badge {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-top: 8px;
+        }
+
+        .status-active {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-expired {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .status-pending {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .status-approved {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-rejected {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .empty-state {
             text-align: center;
+            padding: 50px 20px;
             color: #999;
-            padding: 40px;
         }
+
+        .empty-state svg {
+            width: 60px;
+            height: 60px;
+            margin-bottom: 15px;
+            opacity: 0.5;
+        }
+
         .loading {
             text-align: center;
             padding: 40px;
-            color: #666;
+            color: #999;
         }
-        .alert {
-            padding: 12px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            font-size: 14px;
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
         }
-        .alert-success {
-            background: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
-        .alert-error {
-            background: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-        }
-        .price-info {
-            background: #fff3cd;
-            padding: 15px;
-            border-radius: 8px;
-            margin: 15px 0;
-            border-left: 4px solid #ffc107;
-        }
-        .price-info strong {
-            color: #856404;
-            font-size: 18px;
-        }
+
         .recharge-item {
             background: #f8f9fa;
             padding: 15px;
             border-radius: 8px;
+            margin-bottom: 12px;
             border-left: 4px solid #667eea;
-            margin-bottom: 10px;
         }
-        .recharge-item.pending { border-left-color: #ffc107; background: #fffbf0; }
-        .recharge-item.approved { border-left-color: #28a745; background: #f0f9f7; }
-        .recharge-item.rejected { border-left-color: #dc3545; background: #f9f0f0; }
+
+        .recharge-item.pending {
+            border-left-color: #ffc107;
+            background: #fffbf0;
+        }
+
+        .recharge-item.approved {
+            border-left-color: #28a745;
+            background: #f0f9f7;
+        }
+
+        .recharge-item.rejected {
+            border-left-color: #dc3545;
+            background: #f9f0f0;
+        }
+
         .recharge-amount {
             font-size: 18px;
             font-weight: bold;
             color: #333;
         }
+
         .recharge-status {
             display: inline-block;
-            padding: 5px 12px;
+            padding: 6px 12px;
             border-radius: 20px;
             font-size: 12px;
             font-weight: 600;
-            margin-top: 5px;
+            margin-top: 8px;
         }
-        .recharge-status.pending { background: #ffc107; color: white; }
-        .recharge-status.approved { background: #28a745; color: white; }
-        .recharge-status.rejected { background: #dc3545; color: white; }
+
+        .recharge-status.pending {
+            background: #ffc107;
+            color: white;
+        }
+
+        .recharge-status.approved {
+            background: #28a745;
+            color: white;
+        }
+
+        .recharge-status.rejected {
+            background: #dc3545;
+            color: white;
+        }
+
         .recharge-date {
             font-size: 12px;
             color: #999;
-            margin-top: 5px;
+            margin-top: 8px;
         }
+
         @media (max-width: 768px) {
-            .header-right { width: 100%; justify-content: space-between; }
-            .form-grid { grid-template-columns: 1fr; }
+            .header {
+                flex-direction: column;
+                text-align: center;
+            }
+
+            .header-right {
+                justify-content: center;
+                width: 100%;
+            }
+
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .balance-amount {
+                font-size: 42px;
+            }
         }
     </style>
 </head>
 <body>
+    <!-- HEADER -->
     <div class="header">
         <h1>🌐 Proxy Shop</h1>
         <div class="header-right">
-            <span id="userEmail"></span>
-            <div class="balance" id="headerBalance">$0.00</div>
-            <button class="btn-logout" onclick="logout()">Déconnexion</button>
+            <div class="user-info">👤 <span id="userEmail">Chargement...</span></div>
+            <div class="balance-badge">💰 <span id="headerBalance">$0.00</span></div>
+            <button class="btn-logout" onclick="logout()">🚪 Déconnexion</button>
         </div>
     </div>
 
+    <!-- CONTAINER -->
     <div class="container">
-        <!-- Carte Balance -->
+        <!-- BALANCE CARD -->
         <div class="card balance-card">
             <h2>💰 Votre Solde</h2>
             <div class="balance-amount" id="balance">$0.00</div>
-            <p style="margin-bottom: 15px;">Rechargez votre compte via FaucetPay</p>
-            <a href="recharge.html" style="display: inline-block; background: rgba(255,255,255,0.3); color: white; padding: 12px 30px; border-radius: 8px; text-decoration: none; font-weight: bold;">
-                💳 Recharger mon compte
-            </a>
+            <p>Rechargez votre compte via FaucetPay</p>
+            <a href="recharge.html">💳 Recharger mon compte</a>
         </div>
 
-        <!-- Mes Recharges -->
+        <!-- MES RECHARGES -->
         <div class="card">
             <h2>📊 Mes Demandes de Recharge</h2>
-            <div id="myRechargesList" class="loading">Chargement...</div>
+            <div id="myRechargesList" class="loading">
+                <div class="spinner"></div>
+                Chargement des recharges...
+            </div>
         </div>
 
-        <!-- Acheter un Proxy -->
+        <!-- ACHETER UN PROXY -->
         <div class="card">
             <h2>🛒 Acheter un Proxy</h2>
             <div id="buyAlert"></div>
-            
+
             <form id="buyProxyForm">
                 <div class="form-grid">
                     <div class="form-group">
-                        <label>Package *</label>
+                        <label>📦 Package *</label>
                         <select id="packageType" required>
                             <option value="">Sélectionnez un package</option>
-                            <option value="1">Golden Package</option>
-                            <option value="2">Silver Package</option>
+                            <option value="1">Golden Package (Pays changeables)</option>
+                            <option value="2">Silver Package (Pays fixe)</option>
                         </select>
                     </div>
 
                     <div class="form-group">
-                        <label>Durée *</label>
+                        <label>⏱️ Durée *</label>
                         <select id="duration" required disabled>
-                            <option value="">Sélectionnez d'abord un package</option>
+                            <option value="">Sélectionnez un package d'abord</option>
                         </select>
                     </div>
 
                     <div class="form-group">
-                        <label>Protocol *</label>
+                        <label>🔗 Protocol *</label>
                         <select id="protocol" required>
-                            <option value="">Sélectionnez un protocol</option>
+                            <option value="">Sélectionnez un protocole</option>
                             <option value="http">HTTP</option>
                             <option value="socks5">SOCKS5</option>
                         </select>
                     </div>
 
                     <div class="form-group">
-                        <label>Pays</label>
+                        <label>🌍 Pays</label>
                         <select id="country" disabled>
                             <option value="">Sélectionnez un package d'abord</option>
                         </select>
@@ -277,7 +493,7 @@
                 </div>
 
                 <div class="form-group">
-                    <label>Proxy Parent *</label>
+                    <label>🖥️ Proxy Parent *</label>
                     <select id="parentProxy" required disabled>
                         <option value="">Sélectionnez un pays d'abord</option>
                     </select>
@@ -285,55 +501,97 @@
 
                 <div class="form-grid">
                     <div class="form-group">
-                        <label>Username (optionnel)</label>
+                        <label>👤 Username (optionnel)</label>
                         <input type="text" id="username" placeholder="Laisser vide pour auto-générer">
                     </div>
 
                     <div class="form-group">
-                        <label>Password (optionnel)</label>
+                        <label>🔑 Password (optionnel)</label>
                         <input type="text" id="password" placeholder="Laisser vide pour auto-générer">
                     </div>
                 </div>
 
-                <div class="price-info" id="priceInfo" style="display: none;">
-                    <strong>Prix: $<span id="priceAmount">0.00</span></strong>
+                <div class="price-info" id="priceInfo">
+                    <strong>💵 Prix: $<span id="priceAmount">0.00</span></strong>
                 </div>
 
                 <button type="submit" class="btn btn-primary" id="buyBtn" disabled>
-                    Acheter le Proxy
+                    🛒 Acheter le Proxy
                 </button>
             </form>
         </div>
 
-        <!-- Mes Proxies -->
+        <!-- MES PROXIES -->
         <div class="card">
             <h2>📋 Mes Proxies</h2>
-            <div id="myProxies" class="loading">Chargement...</div>
+            <div id="myProxies" class="loading">
+                <div class="spinner"></div>
+                Chargement de vos proxies...
+            </div>
         </div>
 
-        <!-- Mes Transactions -->
+        <!-- HISTORIQUE TRANSACTIONS -->
         <div class="card">
             <h2>💳 Historique des Transactions</h2>
-            <div id="myTransactions" class="loading">Chargement...</div>
+            <div id="myTransactions" class="loading">
+                <div class="spinner"></div>
+                Chargement de vos transactions...
+            </div>
         </div>
     </div>
 
     <script>
 const API_URL = 'https://adminpanel-fj5l.onrender.com';
 const token = localStorage.getItem('token');
-if (!token) window.location.href = 'login.html';
+if (!token) {
+    window.location.href = 'login.html';
+}
 
 let user = JSON.parse(localStorage.getItem('user') || '{}');
 let prices = {};
 
-// UI Setup
-document.getElementById('userEmail').textContent = user.email || 'Utilisateur';
-document.getElementById('headerBalance').textContent = '$' + (user.balance || 0).toFixed(2);
-document.getElementById('balance').textContent = '$' + (user.balance || 0).toFixed(2);
+// ========== INITIALIZATION ==========
+async function init() {
+    try {
+        document.getElementById('userEmail').textContent = user.email || 'Utilisateur';
+        updateBalance(user.balance || 0);
+        
+        await loadPrices();
+        await loadMyRecharges();
+        await loadMyProxies();
+        await loadTransactions();
+    } catch (error) {
+        console.error('Erreur init:', error);
+    }
+}
 
-function logout() {
-    localStorage.clear();
-    window.location.href = 'login.html';
+// ========== API CALLS ==========
+async function apiCall(endpoint, options = {}) {
+    try {
+        const response = await fetch(API_URL + endpoint, {
+            ...options,
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json',
+                ...options.headers
+            }
+        });
+
+        if (response.status === 401) {
+            logout();
+            return null;
+        }
+
+        if (!response.ok) {
+            const err = await response.json();
+            throw new Error(err.error || 'Erreur API');
+        }
+
+        return await response.json();
+    } catch (error) {
+        console.error('API Error:', error);
+        throw error;
+    }
 }
 
 function updateBalance(newBalance) {
@@ -343,58 +601,55 @@ function updateBalance(newBalance) {
     document.getElementById('balance').textContent = '$' + newBalance.toFixed(2);
 }
 
-async function apiCall(endpoint, options = {}) {
-    const res = await fetch(API_URL + endpoint, {
-        ...options,
-        headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-            ...options.headers
-        }
-    });
-
-    if (!res.ok) {
-        if (res.status === 401) logout();
-        throw new Error('Erreur API');
-    }
-    return res.json();
+function showAlert(message, type = 'success') {
+    const alertDiv = document.getElementById('buyAlert');
+    alertDiv.innerHTML = `<div class="alert alert-${type} show">${message}</div>`;
+    setTimeout(() => {
+        alertDiv.innerHTML = '';
+    }, 4000);
 }
 
+function logout() {
+    localStorage.clear();
+    window.location.href = 'login.html';
+}
+
+// ========== PRICES ==========
 async function loadPrices() {
     try {
         const res = await fetch(API_URL + '/api/prices');
         prices = await res.json();
-    } catch (e) {
-        console.error('Erreur prix:', e);
+    } catch (error) {
+        console.error('Erreur prix:', error);
     }
 }
 
+// ========== COUNTRIES & PROXIES ==========
 async function loadCountries(pkgId) {
     try {
         const countries = await apiCall(`/api/countries?pkg_id=${pkgId}`);
         const select = document.getElementById('country');
         select.innerHTML = '<option value="">Sélectionnez un pays</option>';
-        
+
         if (countries && countries.length > 0) {
             countries.forEach(c => {
-                const name = c.country_name || c.name || c.id;
+                const name = c.country_name || c.name || 'Pays';
                 select.innerHTML += `<option value="${c.id}">${name}</option>`;
             });
             select.disabled = false;
+        } else {
+            select.innerHTML += '<option disabled>Aucun pays disponible</option>';
         }
-    } catch (e) {
-        console.error('Erreur pays:', e);
+    } catch (error) {
+        console.error('Erreur pays:', error);
+        document.getElementById('country').innerHTML = '<option disabled>Erreur chargement</option>';
     }
 }
 
 async function loadParentProxies(pkgId, countryId) {
     try {
         let url = `/api/parent-proxies?pkg_id=${pkgId}&offset=0`;
-        
-        if (countryId) {
-            // L'API backend va automatiquement transformer country_id en service_provider_city_id
-            url += `&country_id=${countryId}`;
-        }
+        if (countryId) url += `&country_id=${countryId}`;
 
         const proxies = await apiCall(url);
         const select = document.getElementById('parentProxy');
@@ -408,7 +663,6 @@ async function loadParentProxies(pkgId, countryId) {
 
         let count = 0;
         proxies.forEach(p => {
-            // Vérifications plus robustes
             const isActive = (p.status || '').toUpperCase() === 'ACTIVE';
             const usage = p.usage !== undefined ? p.usage : -1;
             const notFull = usage === -1 || usage < 90;
@@ -437,30 +691,21 @@ async function loadParentProxies(pkgId, countryId) {
             select.disabled = false;
             document.getElementById('buyBtn').disabled = false;
         }
-    } catch (e) {
-        console.error('Erreur proxies parents:', e);
-        const select = document.getElementById('parentProxy');
-        select.innerHTML = '<option disabled>Erreur chargement</option>';
-        select.disabled = true;
+    } catch (error) {
+        console.error('Erreur proxies parents:', error);
+        document.getElementById('parentProxy').innerHTML = '<option disabled>Erreur chargement</option>';
+        document.getElementById('parentProxy').disabled = true;
     }
 }
 
-        if (count === 0) {
-            select.innerHTML += '<option disabled>Aucun proxy disponible</option>';
-            select.disabled = true;
-        } else {
-            select.disabled = false;
-            document.getElementById('buyBtn').disabled = false;
-        }
-    } catch (e) {
-        console.error('Erreur proxies:', e);
-    }
-}
-
-// Events
+// ========== EVENTS ==========
 document.getElementById('packageType').addEventListener('change', async e => {
     const pkgId = e.target.value;
-    if (!pkgId) return;
+    if (!pkgId) {
+        document.getElementById('duration').disabled = true;
+        document.getElementById('country').disabled = true;
+        return;
+    }
 
     const type = pkgId === '1' ? 'golden' : 'silver';
     const list = prices[type]?.prices || [];
@@ -478,7 +723,9 @@ document.getElementById('packageType').addEventListener('change', async e => {
 document.getElementById('country').addEventListener('change', e => {
     const countryId = e.target.value;
     const pkgId = document.getElementById('packageType').value;
-    if (countryId && pkgId) loadParentProxies(pkgId, countryId);
+    if (countryId && pkgId) {
+        loadParentProxies(pkgId, countryId);
+    }
 });
 
 document.getElementById('duration').addEventListener('change', e => {
@@ -487,9 +734,12 @@ document.getElementById('duration').addEventListener('change', e => {
     const type = pkgId === '1' ? 'golden' : 'silver';
     const price = prices[type]?.prices.find(p => p.duration === d);
 
+    const priceInfo = document.getElementById('priceInfo');
     if (price) {
-        document.getElementById('priceInfo').style.display = 'block';
         document.getElementById('priceAmount').textContent = price.price.toFixed(2);
+        priceInfo.classList.add('show');
+    } else {
+        priceInfo.classList.remove('show');
     }
 });
 
@@ -497,7 +747,7 @@ document.getElementById('buyProxyForm').addEventListener('submit', async e => {
     e.preventDefault();
     const btn = document.getElementById('buyBtn');
     btn.disabled = true;
-    btn.textContent = 'Achat en cours...';
+    btn.textContent = '⏳ Achat en cours...';
 
     try {
         const result = await apiCall('/api/create-proxy', {
@@ -513,31 +763,28 @@ document.getElementById('buyProxyForm').addEventListener('submit', async e => {
         });
 
         updateBalance(result.userBalance);
-        document.getElementById('buyAlert').innerHTML = '<div class="alert alert-success">✅ Proxy acheté!</div>';
+        showAlert('✅ Proxy acheté avec succès!', 'success');
         document.getElementById('buyProxyForm').reset();
-        document.getElementById('priceInfo').style.display = 'none';
+        document.getElementById('priceInfo').classList.remove('show');
 
-        loadMyProxies();
-        loadTransactions();
-
-        setTimeout(() => {
-            document.getElementById('buyAlert').innerHTML = '';
-        }, 3000);
-    } catch (e) {
-        document.getElementById('buyAlert').innerHTML = `<div class="alert alert-error">❌ Erreur: ${e.message}</div>`;
+        await loadMyProxies();
+        await loadTransactions();
+    } catch (error) {
+        showAlert(`❌ ${error.message}`, 'error');
     } finally {
         btn.disabled = false;
-        btn.textContent = 'Acheter le Proxy';
+        btn.textContent = '🛒 Acheter le Proxy';
     }
 });
 
+// ========== LOAD DATA ==========
 async function loadMyRecharges() {
     try {
         const recharges = await apiCall('/api/my-recharges');
         const container = document.getElementById('myRechargesList');
 
         if (!recharges || recharges.length === 0) {
-            container.innerHTML = '<div class="empty">Aucune demande.</div>';
+            container.innerHTML = '<div class="empty-state">Aucune demande de recharge</div>';
             return;
         }
 
@@ -548,16 +795,15 @@ async function loadMyRecharges() {
 
             container.innerHTML += `
                 <div class="recharge-item ${r.status}">
-                    <div>
-                        <div class="recharge-amount">$${r.amount.toFixed(2)}</div>
-                        <div class="recharge-status ${r.status}">${icons[r.status]} ${texts[r.status]}</div>
-                        <div class="recharge-date">${new Date(r.createdAt).toLocaleDateString('fr-FR')}</div>
-                    </div>
+                    <div class="recharge-amount">$${r.amount.toFixed(2)}</div>
+                    <span class="recharge-status ${r.status}">${icons[r.status]} ${texts[r.status]}</span>
+                    <div class="recharge-date">${new Date(r.createdAt).toLocaleDateString('fr-FR')}</div>
                 </div>
             `;
         });
-    } catch (e) {
-        document.getElementById('myRechargesList').innerHTML = '<div class="alert alert-error">Erreur chargement</div>';
+    } catch (error) {
+        console.error('Erreur recharges:', error);
+        document.getElementById('myRechargesList').innerHTML = '<div class="empty-state">Erreur chargement</div>';
     }
 }
 
@@ -567,7 +813,7 @@ async function loadMyProxies() {
         const container = document.getElementById('myProxies');
 
         if (!proxies || proxies.length === 0) {
-            container.innerHTML = '<div class="empty">Aucun proxy acheté.</div>';
+            container.innerHTML = '<div class="empty-state">Aucun proxy acheté</div>';
             return;
         }
 
@@ -577,19 +823,23 @@ async function loadMyProxies() {
             const expired = expires < new Date();
 
             container.innerHTML += `
-                <div class="proxy-item">
-                    <strong>Proxy #${p.proxyId}</strong>
+                <div class="item-card">
+                    <strong>🖥️ Proxy #${p.proxyId}</strong>
                     <p>📦 ${p.packageType} | ⏱️ ${p.duration}j | 💰 $${p.price.toFixed(2)}</p>
-                    <p>🌐 ${p.protocol.toUpperCase()} | 📍 ${p.host}:${p.port}</p>
-                    <div class="proxy-credentials">Username: ${p.username}<br>Password: ${p.password}</div>
-                    <p style="color: ${expired ? 'red' : 'green'};">
+                    <p>🔗 ${p.protocol.toUpperCase()} | 📍 ${p.host}:${p.port}</p>
+                    <div class="credentials">
+                        👤 ${p.username}<br>
+                        🔑 ${p.password}
+                    </div>
+                    <span class="status-badge ${expired ? 'status-expired' : 'status-active'}">
                         ${expired ? '❌ Expiré' : '✅ Actif'} - ${expires.toLocaleDateString('fr-FR')}
-                    </p>
+                    </span>
                 </div>
             `;
         });
-    } catch (e) {
-        document.getElementById('myProxies').innerHTML = '<div class="alert alert-error">Erreur chargement</div>';
+    } catch (error) {
+        console.error('Erreur proxies:', error);
+        document.getElementById('myProxies').innerHTML = '<div class="empty-state">Erreur chargement</div>';
     }
 }
 
@@ -599,7 +849,7 @@ async function loadTransactions() {
         const container = document.getElementById('myTransactions');
 
         if (!txns || txns.length === 0) {
-            container.innerHTML = '<div class="empty">Aucune transaction.</div>';
+            container.innerHTML = '<div class="empty-state">Aucune transaction</div>';
             return;
         }
 
@@ -607,28 +857,25 @@ async function loadTransactions() {
         txns.forEach(t => {
             const emoji = t.type === 'purchase' ? '🛒' : t.type === 'credit' ? '➕' : '➖';
             container.innerHTML += `
-                <div class="proxy-item">
+                <div class="item-card">
                     <p>
                         <strong>${emoji} ${t.type.toUpperCase()}</strong><br>
                         ${t.description}<br>
                         <span style="color: #667eea; font-weight: bold;">$${t.amount.toFixed(2)}</span>
-                        (${new Date(t.createdAt).toLocaleDateString('fr-FR')})
+                        <br>
+                        <small style="color: #999;">${new Date(t.createdAt).toLocaleDateString('fr-FR')}</small>
                     </p>
                 </div>
             `;
         });
-    } catch (e) {
-        document.getElementById('myTransactions').innerHTML = '<div class="alert alert-error">Erreur chargement</div>';
+    } catch (error) {
+        console.error('Erreur transactions:', error);
+        document.getElementById('myTransactions').innerHTML = '<div class="empty-state">Erreur chargement</div>';
     }
 }
 
-// Init
-(async () => {
-    await loadPrices();
-    await loadMyRecharges();
-    await loadMyProxies();
-    await loadTransactions();
-})();
+// Launch init
+init();
     </script>
 </body>
 </html>
