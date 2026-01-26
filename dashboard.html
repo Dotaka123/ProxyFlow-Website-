@@ -389,8 +389,12 @@ async function loadCountries(pkgId) {
 
 async function loadParentProxies(pkgId, countryId) {
     try {
-        let url = `/api/parent-proxies?pkg_id=${pkgId}`;
-        if (countryId) url += `&country_id=${countryId}`;
+        let url = `/api/parent-proxies?pkg_id=${pkgId}&offset=0`;
+        
+        if (countryId) {
+            // L'API backend va automatiquement transformer country_id en service_provider_city_id
+            url += `&country_id=${countryId}`;
+        }
 
         const proxies = await apiCall(url);
         const select = document.getElementById('parentProxy');
@@ -404,22 +408,42 @@ async function loadParentProxies(pkgId, countryId) {
 
         let count = 0;
         proxies.forEach(p => {
-            const isActive = p.status === 'ACTIVE' || p.status === 'active';
-            const notFull = !p.usage || p.usage === -1 || p.usage < 90;
+            // Vérifications plus robustes
+            const isActive = (p.status || '').toUpperCase() === 'ACTIVE';
+            const usage = p.usage !== undefined ? p.usage : -1;
+            const notFull = usage === -1 || usage < 90;
 
             if (!isActive || !notFull) return;
 
             let badge = '⚪';
-            if (p.technology === '5G') badge = '🔵';
-            else if (p.technology === '4G') badge = '🟢';
-            else if (p.technology === '3.5G') badge = '🟡';
+            const tech = (p.technology || 'N/A').toString();
+            if (tech.includes('5G')) badge = '🔵';
+            else if (tech.includes('4G')) badge = '🟢';
+            else if (tech.includes('3.5G')) badge = '🟡';
 
-            const usage = p.usage === -1 || !p.usage ? 'N/A' : `${p.usage}%`;
-            const label = `${badge} ${p.technology || 'N/A'} | HTTP:${p.http_port || '8080'} | SOCKS:${p.socks_port || '1080'} | ${usage}`;
+            const usageText = usage === -1 ? 'N/A' : `${usage}%`;
+            const httpPort = p.http_port || p.port || 8080;
+            const socksPort = p.socks_port || p.port || 1080;
+            const label = `${badge} ${tech} | HTTP:${httpPort} | SOCKS:${socksPort} | ${usageText}`;
 
             select.innerHTML += `<option value="${p.id}">${label}</option>`;
             count++;
         });
+
+        if (count === 0) {
+            select.innerHTML += '<option disabled>Aucun proxy disponible</option>';
+            select.disabled = true;
+        } else {
+            select.disabled = false;
+            document.getElementById('buyBtn').disabled = false;
+        }
+    } catch (e) {
+        console.error('Erreur proxies parents:', e);
+        const select = document.getElementById('parentProxy');
+        select.innerHTML = '<option disabled>Erreur chargement</option>';
+        select.disabled = true;
+    }
+}
 
         if (count === 0) {
             select.innerHTML += '<option disabled>Aucun proxy disponible</option>';
