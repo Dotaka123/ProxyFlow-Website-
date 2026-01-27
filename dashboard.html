@@ -320,11 +320,54 @@
         </div>
 
         <!-- Mes Transactions -->
+                <!-- Mes Transactions -->
         <div class="card">
             <h2>💳 Historique des Transactions</h2>
             <div id="myTransactions" class="loading">Chargement...</div>
         </div>
+
+        <!-- Modal Changement de Pays -->
+        <div class="modal fade" id="changeProxyModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">🌍 Changer de Pays</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="form-group">
+                            <label>🌍 Choisir un pays:</label>
+                            <select id="changeCountry" class="form-control">
+                                <option value="">-- Sélectionner un pays --</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group" id="protocolGroup" style="display: none;">
+                            <label>🔌 Protocole:</label>
+                            <select id="changeProtocol" class="form-control">
+                                <option value="">-- Sélectionner un protocole --</option>
+                                <option value="http">HTTP</option>
+                                <option value="socks5">SOCKS5</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group" id="proxyGroup" style="display: none;">
+                            <label>📡 Sélectionner un proxy:</label>
+                            <select id="updateParent" class="form-control">
+                                <option value="">-- Charger les proxies --</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                        <button type="button" class="btn btn-primary" id="confirmChangeParent" style="display: none;">✅ Confirmer</button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script src="js/config.js"></script>
 <script src="js/notifications.js"></script>
 <script>
