@@ -521,24 +521,23 @@ document.getElementById('buyProxyForm').addEventListener('submit', async (e) => 
     }
 });
 
-/* ================= PROXIES ================= */
 async function loadMyProxies() {
     const container = document.getElementById('myProxies');
     container.innerHTML = '<div class="loading">Chargement...</div>';
-
     try {
         const proxies = await apiCall('/api/my-proxies');
-
         if (!proxies || !proxies.length) {
-            container.innerHTML = '<div class="empty">Vous n\'avez aucun proxy actif sur Proxy Shop.</div>';
+            container.innerHTML = '<div class="empty">Aucun proxy actif.</div>';
             return;
         }
-
         container.innerHTML = '';
         proxies.forEach(p => {
             const date = new Date(p.createdAt).toLocaleDateString();
-            const expires = p.expiresAt ? new Date(p.expiresAt).toLocaleString() : 'N/A';
-
+            const expiresDate = p.expiresAt ? new Date(p.expiresAt) : null;
+            const now = new Date();
+            const isExpired = expiresDate && expiresDate < now;
+            const expires = expiresDate ? expiresDate.toLocaleString() : 'N/A';
+            
             const packageType = (p.packageType || 'UNKNOWN').toLowerCase();
             const protocol = (p.protocol || 'HTTP').toUpperCase();
             const host = p.host || 'N/A';
@@ -547,42 +546,44 @@ async function loadMyProxies() {
             const password = p.password || 'N/A';
 
             let actionHtml = '';
-if (packageType === 'golden') {
-    actionHtml = `
-        <div style="margin-top: 15px;">
-            <button 
-                type="button"
-                class="btn btn-primary"
-                onclick="openChangeProxyModal('${p._id}')"
-                style="width: 100%;"
-            >
-                🌍 Changer de Pays
-            </button>
-        </div>
-    `;
-    }
+            if (packageType === 'golden' && !isExpired) {
+                actionHtml = `
+                    <div style="margin-top: 15px;">
+                        <button type="button" class="btn btn-primary" onclick="openChangeProxyModal('${p._id}')" style="width: 100%;">
+                            🌍 Changer de Pays
+                        </button>
+                    </div>
+                `;
+            }
+
+            let expiredBadge = '';
+            if (isExpired) {
+                expiredBadge = `<span class="badge" style="background: #dc3545; color: white; margin-left: 10px;">⏰ EXPIRÉ</span>`;
+            }
 
             container.innerHTML += `
-                <div class="proxy-item" id="proxy-${p._id}">
-                    <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                <div class="proxy-item" style="${isExpired ? 'opacity: 0.6; background: #f8f9fa;' : ''}">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 10px; align-items: center;">
                         <strong>📦 ${packageType.toUpperCase()}</strong>
-                        <span class="badge badge-info">${protocol}</span>
+                        <div>
+                            <span class="badge badge-info">${protocol}</span>
+                            ${expiredBadge}
+                        </div>
                     </div>
-                    <div class="proxy-credentials">
+                    <div class="proxy-credentials" style="${isExpired ? 'opacity: 0.5;' : ''}">
                         ${host}:${port}<br>
                         User: ${username} | Pass: ${password}
-                        <button class="copy-btn" onclick="copyToClipboard('${host}:${port}:${username}:${password}')">Copier tout</button>
+                        <button class="copy-btn" onclick="copyToClipboard('${host}:${port}:${username}:${password}')">Copier</button>
                     </div>
                     <div style="font-size: 12px; color: #666;">
-                        Acheté le: ${date} | Expire le: ${expires}
+                        Acheté: ${date} | Expire: <span style="${isExpired ? 'color: #dc3545; font-weight: bold;' : ''}">${expires}</span>
                     </div>
                     ${actionHtml}
                 </div>
             `;
         });
-
     } catch (error) {
-        container.innerHTML = `<div class="alert alert-error">Erreur sur Proxy Shop: ${error.message}</div>`;
+        container.innerHTML = `<div class="alert alert-error">Erreur: ${error.message}</div>`;
     }
 }
     /* ================= CHANGEMENT DE PAYS ================= */
