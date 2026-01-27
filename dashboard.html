@@ -562,10 +562,6 @@ if (packageType === 'golden') {
                     ${actionHtml}
                 </div>
             `;
-
-            if (packageType === 'golden') {
-                setTimeout(() => loadUpdateProxies(p._id), 100);
-            }
         });
 
     } catch (error) {
