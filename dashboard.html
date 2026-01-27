@@ -324,8 +324,52 @@
             <h2>💳 Historique des Transactions</h2>
             <div id="myTransactions" class="loading">Chargement...</div>
         </div>
-    </div>
-<script src="js/config.js"></script>
+            </div>
+
+        <!-- Modal Changement de Pays -->
+        <div class="modal fade" id="changeProxyModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">🌍 Changer de Pays</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <!-- ÉTAPE 1: Choisir le pays -->
+                        <div class="form-group">
+                            <label>🌍 Choisir un pays:</label>
+                            <select id="changeCountry" class="form-control">
+                                <option value="">-- Sélectionner un pays --</option>
+                            </select>
+                        </div>
+
+                        <!-- ÉTAPE 2: Choisir le protocole -->
+                        <div class="form-group" id="protocolGroup" style="display: none;">
+                            <label>🔌 Protocole:</label>
+                            <select id="changeProtocol" class="form-control">
+                                <option value="">-- Sélectionner un protocole --</option>
+                                <option value="http">HTTP</option>
+                                <option value="socks5">SOCKS5</option>
+                            </select>
+                        </div>
+
+                        <!-- ÉTAPE 3: Choisir le parent proxy -->
+                        <div class="form-group" id="proxyGroup" style="display: none;">
+                            <label>📡 Sélectionner un proxy:</label>
+                            <select id="updateParent" class="form-control">
+                                <option value="">-- Charger les proxies --</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                        <button type="button" class="btn btn-primary" id="confirmChangeParent" style="display: none;">✅ Confirmer</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+</div>
+ <script src="js/config.js"></script>
 <script src="js/notifications.js"></script>
 <script>
 /* ================= AUTH ================= */
@@ -459,7 +503,7 @@ document.getElementById('buyProxyForm').addEventListener('submit', async (e) => 
         localStorage.setItem('user', JSON.stringify(user));
         refreshProfile();
 
-        showToast('Proxy acheté avec succès sur Proxy Shop!', 'success');
+        showToast('Proxy acheté avec succès!', 'success');
         document.getElementById('buyProxyForm').reset();
         document.getElementById('priceInfo').style.display = 'none';
 
@@ -467,18 +511,14 @@ document.getElementById('buyProxyForm').addEventListener('submit', async (e) => 
         await loadTransactions();
 
     } catch (error) {
-        if (error.message.includes('insuffisant') || error.message.includes('balance')) {
-            showToast('Solde insuffisant sur Proxy Shop', 'error');
-        } else {
-            showToast(error.message || 'Erreur lors de l\'achat', 'error');
-        }
+        showToast(error.message || 'Erreur lors de l\'achat', 'error');
     } finally {
         buyBtn.disabled = false;
         buyBtn.textContent = 'Acheter le Proxy';
     }
 });
 
-/* ================= PROXIES ================= */
+/* ================= MES PROXIES ================= */
 async function loadMyProxies() {
     const container = document.getElementById('myProxies');
     container.innerHTML = '<div class="loading">Chargement...</div>';
@@ -487,7 +527,7 @@ async function loadMyProxies() {
         const proxies = await apiCall('/api/my-proxies');
 
         if (!proxies || !proxies.length) {
-            container.innerHTML = '<div class="empty">Vous n\'avez aucun proxy actif sur Proxy Shop.</div>';
+            container.innerHTML = '<div class="empty">Vous n\'avez aucun proxy actif.</div>';
             return;
         }
 
@@ -495,7 +535,6 @@ async function loadMyProxies() {
         proxies.forEach(p => {
             const date = new Date(p.createdAt).toLocaleDateString();
             const expires = p.expiresAt ? new Date(p.expiresAt).toLocaleString() : 'N/A';
-
             const packageType = (p.packageType || 'UNKNOWN').toLowerCase();
             const protocol = (p.protocol || 'HTTP').toUpperCase();
             const host = p.host || 'N/A';
@@ -504,20 +543,20 @@ async function loadMyProxies() {
             const password = p.password || 'N/A';
 
             let actionHtml = '';
-if (packageType === 'golden') {
-    actionHtml = `
-        <div style="margin-top: 15px;">
-            <button 
-                type="button"
-                class="btn btn-primary"
-                onclick="openChangeProxyModal('${p._id}')"
-                style="width: 100%;"
-            >
-                🌍 Changer de Pays
-            </button>
-        </div>
-    `;
-    }
+            if (packageType === 'golden') {
+                actionHtml = `
+                    <div style="margin-top: 15px;">
+                        <button 
+                            type="button"
+                            class="btn btn-primary"
+                            onclick="openChangeProxyModal('${p._id}')"
+                            style="width: 100%;"
+                        >
+                            🌍 Changer de Pays
+                        </button>
+                    </div>
+                `;
+            }
 
             container.innerHTML += `
                 <div class="proxy-item" id="proxy-${p._id}">
@@ -539,19 +578,21 @@ if (packageType === 'golden') {
         });
 
     } catch (error) {
-        container.innerHTML = `<div class="alert alert-error">Erreur sur Proxy Shop: ${error.message}</div>`;
+        container.innerHTML = `<div class="alert alert-error">Erreur: ${error.message}</div>`;
     }
 }
-    /* ================= CHANGEMENT DE PAYS ================= */
 
-// Ouvrir le modal
+function copyToClipboard(text) {
+    navigator.clipboard.writeText(text).then(() => {
+        showToast('Copié!', 'success');
+    });
+}
+
+/* ================= CHANGEMENT DE PAYS (MODAL) ================= */
+
 async function openChangeProxyModal(proxyId) {
     window.currentProxyId = proxyId;
     
-    // Charger les pays
-    loadCountriesForChange();
-    
-    // Réinitialiser
     document.getElementById('changeCountry').value = '';
     document.getElementById('changeProtocol').value = '';
     document.getElementById('updateParent').value = '';
@@ -559,12 +600,12 @@ async function openChangeProxyModal(proxyId) {
     document.getElementById('proxyGroup').style.display = 'none';
     document.getElementById('confirmChangeParent').style.display = 'none';
     
-    // Ouvrir
+    await loadCountriesForChange();
+    
     const modal = new bootstrap.Modal(document.getElementById('changeProxyModal'));
     modal.show();
 }
 
-// ÉTAPE 1: Charger les pays
 async function loadCountriesForChange() {
     try {
         const countries = await apiCall('/api/countries?pkg_id=1');
@@ -575,11 +616,10 @@ async function loadCountriesForChange() {
             select.innerHTML += `<option value="${country.id}">${country.country_name}</option>`;
         });
         
-        // Quand on change de pays
         select.removeEventListener('change', handleCountryChange);
         select.addEventListener('change', handleCountryChange);
     } catch (e) {
-        console.error('Erreur pays:', e);
+        console.error('Erreur:', e);
     }
 }
 
@@ -594,7 +634,6 @@ function handleCountryChange() {
     }
 }
 
-// ÉTAPE 2: Quand le protocole change
 document.addEventListener('DOMContentLoaded', function() {
     const protocolSelect = document.getElementById('changeProtocol');
     if (protocolSelect) {
@@ -604,7 +643,6 @@ document.addEventListener('DOMContentLoaded', function() {
             if (this.value && countryId) {
                 document.getElementById('proxyGroup').style.display = 'block';
                 document.getElementById('confirmChangeParent').style.display = 'block';
-                
                 loadProxiesForChange(countryId, this.value);
             } else {
                 document.getElementById('proxyGroup').style.display = 'none';
@@ -613,36 +651,26 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // Confirmer le changement
     const confirmBtn = document.getElementById('confirmChangeParent');
     if (confirmBtn) {
         confirmBtn.addEventListener('click', confirmChangeProxy);
     }
 });
 
-// ÉTAPE 3: Charger les proxies
 async function loadProxiesForChange(countryId, protocol) {
     const selectParent = document.getElementById('updateParent');
-    
-    if (!countryId) {
-        selectParent.innerHTML = '<option value="">Sélectionner un pays d\'abord</option>';
-        selectParent.disabled = true;
-        return;
-    }
     
     try {
         selectParent.innerHTML = '<option value="">⏳ Chargement...</option>';
         selectParent.disabled = true;
         
         const proxies = await apiCall(`/api/parent-proxies?pkg_id=1&country_id=${countryId}`);
-        
         selectParent.innerHTML = '<option value="">-- Sélectionner un proxy --</option>';
         
         if (proxies && proxies.length > 0) {
             proxies
                 .filter(p => {
                     if (p.country_id !== parseInt(countryId)) return false;
-                    
                     if (protocol === 'http') {
                         return p.http_port > 0 && p.is_available && (p.usage === -1 || p.usage < 90);
                     } else if (protocol === 'socks5') {
@@ -660,7 +688,6 @@ async function loadProxiesForChange(countryId, protocol) {
                     `;
                 });
         }
-        
         selectParent.disabled = false;
     } catch (e) {
         console.error('Erreur:', e);
@@ -668,14 +695,13 @@ async function loadProxiesForChange(countryId, protocol) {
     }
 }
 
-// Confirmer le changement
 async function confirmChangeProxy() {
     const countryId = document.getElementById('changeCountry').value;
     const protocol = document.getElementById('changeProtocol').value;
     const parentProxyId = document.getElementById('updateParent').value;
     
     if (!countryId || !protocol || !parentProxyId) {
-        alert('❌ Remplissez tous les champs');
+        showToast('❌ Remplissez tous les champs', 'error');
         return;
     }
     
@@ -685,19 +711,15 @@ async function confirmChangeProxy() {
         confirmBtn.disabled = true;
         confirmBtn.innerHTML = '⏳ Changement...';
         
-        const result = await apiCall(`/api/proxies/${window.currentProxyId}/change-parent`, {
+        await apiCall(`/api/proxies/${window.currentProxyId}/change-parent`, {
             method: 'PUT',
             body: JSON.stringify({
                 parent_proxy_id: parseInt(parentProxyId)
             })
         });
         
-        showToast('✅ ' + result.message, 'success');
-        
-        // Fermer
+        showToast('✅ Proxy changé!', 'success');
         bootstrap.Modal.getInstance(document.getElementById('changeProxyModal')).hide();
-        
-        // Recharger
         await loadMyProxies();
         
     } catch (error) {
@@ -708,229 +730,45 @@ async function confirmChangeProxy() {
     }
 }
 
-function copyToClipboard(text) {
-    navigator.clipboard.writeText(text).then(() => {
-        showToast('Copié dans le presse-papier!', 'success');
-    });
-}
-
-// ÉTAPE 1: Charger les pays
-async function loadCountriesForChange() {
-    try {
-        const countries = await apiCall('/api/countries?pkg_id=1');
-        const select = document.getElementById('changeCountry');
-        select.innerHTML = '<option value="">-- Sélectionner un pays --</option>';
-        
-        countries.forEach(country => {
-            select.innerHTML += `<option value="${country.id}">${country.country_name}</option>`;
-        });
-        
-        // Quand on change de pays
-        select.removeEventListener('change', handleCountryChange);
-        select.addEventListener('change', handleCountryChange);
-    } catch (e) {
-        console.error('Erreur pays:', e);
-    }
-}
-
-function handleCountryChange() {
-    if (this.value) {
-        document.getElementById('protocolGroup').style.display = 'block';
-        document.getElementById('proxyGroup').style.display = 'none';
-        document.getElementById('updateParent').innerHTML = '<option value="">-- Charger les proxies --</option>';
-    } else {
-        document.getElementById('protocolGroup').style.display = 'none';
-        document.getElementById('proxyGroup').style.display = 'none';
-    }
-}
-
-// ÉTAPE 3: Charger les proxies
-async function loadProxiesForChange(countryId, protocol) {
-    const selectParent = document.getElementById('updateParent');
-    
-    if (!countryId) {
-        selectParent.innerHTML = '<option value="">Sélectionner un pays d\'abord</option>';
-        selectParent.disabled = true;
-        return;
-    }
-    
-    try {
-        selectParent.innerHTML = '<option value="">⏳ Chargement...</option>';
-        selectParent.disabled = true;
-        
-        const proxies = await apiCall(`/api/parent-proxies?pkg_id=1&country_id=${countryId}`);
-        
-        selectParent.innerHTML = '<option value="">-- Sélectionner un proxy --</option>';
-        
-        if (proxies && proxies.length > 0) {
-            proxies
-                .filter(p => {
-                    if (p.country_id !== parseInt(countryId)) return false;
-                    
-                    if (protocol === 'http') {
-                        return p.http_port > 0 && p.is_available && (p.usage === -1 || p.usage < 90);
-                    } else if (protocol === 'socks5') {
-                        return p.socks_port > 0 && p.is_available && (p.usage === -1 || p.usage < 90);
-                    }
-                    return false;
-                })
-                .forEach(p => {
-                    const port = protocol === 'http' ? p.http_port : p.socks_port;
-                    const usageText = p.usage === -1 ? 'N/A' : `${p.usage}%`;
-                    selectParent.innerHTML += `
-                        <option value="${p.id}">
-                            ${p.service_provider_name} | ${p.city_name} | Port:${port} | Usage:${usageText}
-                        </option>
-                    `;
-                });
-        }
-        
-        selectParent.disabled = false;
-    } catch (e) {
-        console.error('Erreur:', e);
-        selectParent.innerHTML = '<option disabled>Erreur chargement</option>';
-    }
-    }
-
-async function loadParentForChange(proxyId, countryId) {
-    const selectParent = document.getElementById(`updateParent-${proxyId}`);
-    
-    if (!countryId) {
-        selectParent.innerHTML = '<option value="">Choisir un proxy...</option>';
-        selectParent.disabled = true;
-        return;
-    }
-    
-    try {
-        const proxies = await apiCall(`/api/parent-proxies?pkg_id=1&country_id=${countryId}`);
-        
-        selectParent.innerHTML = '<option value="">Choisir un proxy...</option>';
-        
-        if (proxies && proxies.length > 0) {
-            proxies
-                .filter(p => p.status === 'ACTIVE' && (p.usage === -1 || p.usage < 90))
-                .forEach(p => {
-                    const usageText = p.usage === -1 ? 'N/A' : `${p.usage}%`;
-                    selectParent.innerHTML += `
-                        <option value="${p.id}">
-                            ${p.technology} | HTTP:${p.http_port} | Usage:${usageText}
-                        </option>
-                    `;
-                });
-        }
-        
-        selectParent.disabled = false;
-    } catch (e) {
-        console.error('❌ Erreur:', e);
-        selectParent.innerHTML = '<option disabled>Erreur chargement</option>';
-    }
-}
-
-async function updateProxyLocation(proxyId) {
-    const selectParent = document.getElementById(`updateParent-${proxyId}`);
-    const selectProtocol = document.getElementById(`updateProtocol-${proxyId}`);
-    
-    const parentId = selectParent?.value;
-    const protocol = selectProtocol?.value;
-    
-    console.log('🔍 DEBUG:', { proxyId, parentId, protocol });
-    
-    if (!parentId) {
-        showToast('Veuillez choisir un proxy parent', 'error');
-        return;
-    }
-    
-    if (!protocol) {
-        showToast('Veuillez choisir un protocol', 'error');
-        return;
-    }
-
-    try {
-        const payload = {
-            parent_proxy_id: parseInt(parentId),
-            protocol: protocol.toUpperCase()
-        };
-        
-        console.log('📤 Payload envoyé:', JSON.stringify(payload, null, 2));
-        
-        await apiCall(`/api/proxies/${proxyId}/change-parent`, {
-            method: 'PUT',
-            body: JSON.stringify(payload)
-        });
-
-        showToast('Proxy changé avec succès! 🌍', 'success');
-        await loadMyProxies();
-    } catch (error) {
-        console.error('❌ Erreur:', error);
-        showToast(error.message || 'Erreur lors du changement', 'error');
-    }
-}
-
+/* ================= TRANSACTIONS ================= */
 async function loadTransactions() {
     const container = document.getElementById('myTransactions');
     container.innerHTML = '<div class="loading">Chargement...</div>';
 
     try {
-        const transactions = await apiCall('/api/transactions');
-
+        const transactions = await apiCall('/api/my-transactions');
+        
         if (!transactions || !transactions.length) {
-            container.innerHTML = '<div class="empty">Aucune transaction trouvée sur Proxy Shop.</div>';
+            container.innerHTML = '<div class="empty">Aucune transaction.</div>';
             return;
         }
 
-        container.innerHTML = '';
+        let html = '<table class="table"><thead><tr><th>Date</th><th>Type</th><th>Montant</th><th>Status</th></tr></thead><tbody>';
+        
         transactions.forEach(t => {
-            const typeLabel = t.type === 'credit' ? 'CRÉDIT' : (t.type === 'purchase' ? 'ACHAT' : 'DÉBIT');
-
-            container.innerHTML += `
-                <div class="proxy-item" style="border-left-color: ${t.type === 'credit' ? '#4caf50' : '#f44336'}">
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <div>
-                            <span class="badge" style="background: ${t.type === 'credit' ? '#d4edda' : '#f8d7da'}; color: ${t.type === 'credit' ? '#155724' : '#721c24'};">${typeLabel}</span>
-                            <strong style="margin-left: 10px;">\$${t.amount.toFixed(2)}</strong>
-                        </div>
-                        <span style="font-size: 12px; color: #666;">${new Date(t.createdAt).toLocaleString()}</span>
-                    </div>
-                    <div style="margin-top: 5px; color: #444; font-size: 14px;">
-                        ${t.description || 'Pas de description'}
-                    </div>
-                </div>
+            const date = new Date(t.createdAt).toLocaleDateString();
+            html += `
+                <tr>
+                    <td>${date}</td>
+                    <td>${t.type}</td>
+                    <td>\$${t.amount}</td>
+                    <td><span class="badge badge-${t.status === 'SUCCESS' ? 'success' : 'warning'}">${t.status}</span></td>
+                </tr>
             `;
         });
+        
+        html += '</tbody></table>';
+        container.innerHTML = html;
 
     } catch (error) {
-        container.innerHTML = `<div class="alert alert-error">Erreur sur Proxy Shop: ${error.message}</div>`;
+        container.innerHTML = `<div class="alert alert-error">Erreur: ${error.message}</div>`;
     }
 }
 
 /* ================= INIT ================= */
-function refreshProfile() {
-    document.getElementById('userEmail').textContent = user.email || '';
-    document.getElementById('headerBalance').textContent = '\$' + (user.balance || 0).toFixed(2);
-    document.getElementById('balance').textContent = '\$' + (user.balance || 0).toFixed(2);
-}
-
-async function fetchUserProfile() {
-    try {
-        const userData = await apiCall('/api/auth/me');
-        user = userData;
-        localStorage.setItem('user', JSON.stringify(user));
-        refreshProfile();
-    } catch (error) {
-        console.error('Erreur:', error);
-    }
-}
-
-async function init() {
-    refreshProfile();
-    await loadPrices();
-    await fetchUserProfile();
-    await loadMyProxies();
-    await loadTransactions();
-}
-
-init();
+loadPrices();
+loadMyProxies();
+loadTransactions();
 </script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
