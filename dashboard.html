@@ -542,6 +542,171 @@ if (packageType === 'golden') {
         container.innerHTML = `<div class="alert alert-error">Erreur sur Proxy Shop: ${error.message}</div>`;
     }
 }
+    /* ================= CHANGEMENT DE PAYS ================= */
+
+// Ouvrir le modal
+async function openChangeProxyModal(proxyId) {
+    window.currentProxyId = proxyId;
+    
+    // Charger les pays
+    loadCountriesForChange();
+    
+    // Réinitialiser
+    document.getElementById('changeCountry').value = '';
+    document.getElementById('changeProtocol').value = '';
+    document.getElementById('updateParent').value = '';
+    document.getElementById('protocolGroup').style.display = 'none';
+    document.getElementById('proxyGroup').style.display = 'none';
+    document.getElementById('confirmChangeParent').style.display = 'none';
+    
+    // Ouvrir
+    const modal = new bootstrap.Modal(document.getElementById('changeProxyModal'));
+    modal.show();
+}
+
+// ÉTAPE 1: Charger les pays
+async function loadCountriesForChange() {
+    try {
+        const countries = await apiCall('/api/countries?pkg_id=1');
+        const select = document.getElementById('changeCountry');
+        select.innerHTML = '<option value="">-- Sélectionner un pays --</option>';
+        
+        countries.forEach(country => {
+            select.innerHTML += `<option value="${country.id}">${country.country_name}</option>`;
+        });
+        
+        // Quand on change de pays
+        select.removeEventListener('change', handleCountryChange);
+        select.addEventListener('change', handleCountryChange);
+    } catch (e) {
+        console.error('Erreur pays:', e);
+    }
+}
+
+function handleCountryChange() {
+    if (this.value) {
+        document.getElementById('protocolGroup').style.display = 'block';
+        document.getElementById('proxyGroup').style.display = 'none';
+        document.getElementById('updateParent').innerHTML = '<option value="">-- Charger les proxies --</option>';
+    } else {
+        document.getElementById('protocolGroup').style.display = 'none';
+        document.getElementById('proxyGroup').style.display = 'none';
+    }
+}
+
+// ÉTAPE 2: Quand le protocole change
+document.addEventListener('DOMContentLoaded', function() {
+    const protocolSelect = document.getElementById('changeProtocol');
+    if (protocolSelect) {
+        protocolSelect.addEventListener('change', function() {
+            const countryId = document.getElementById('changeCountry').value;
+            
+            if (this.value && countryId) {
+                document.getElementById('proxyGroup').style.display = 'block';
+                document.getElementById('confirmChangeParent').style.display = 'block';
+                
+                loadProxiesForChange(countryId, this.value);
+            } else {
+                document.getElementById('proxyGroup').style.display = 'none';
+                document.getElementById('confirmChangeParent').style.display = 'none';
+            }
+        });
+    }
+    
+    // Confirmer le changement
+    const confirmBtn = document.getElementById('confirmChangeParent');
+    if (confirmBtn) {
+        confirmBtn.addEventListener('click', confirmChangeProxy);
+    }
+});
+
+// ÉTAPE 3: Charger les proxies
+async function loadProxiesForChange(countryId, protocol) {
+    const selectParent = document.getElementById('updateParent');
+    
+    if (!countryId) {
+        selectParent.innerHTML = '<option value="">Sélectionner un pays d\'abord</option>';
+        selectParent.disabled = true;
+        return;
+    }
+    
+    try {
+        selectParent.innerHTML = '<option value="">⏳ Chargement...</option>';
+        selectParent.disabled = true;
+        
+        const proxies = await apiCall(`/api/parent-proxies?pkg_id=1&country_id=${countryId}`);
+        
+        selectParent.innerHTML = '<option value="">-- Sélectionner un proxy --</option>';
+        
+        if (proxies && proxies.length > 0) {
+            proxies
+                .filter(p => {
+                    if (p.country_id !== parseInt(countryId)) return false;
+                    
+                    if (protocol === 'http') {
+                        return p.http_port > 0 && p.is_available && (p.usage === -1 || p.usage < 90);
+                    } else if (protocol === 'socks5') {
+                        return p.socks_port > 0 && p.is_available && (p.usage === -1 || p.usage < 90);
+                    }
+                    return false;
+                })
+                .forEach(p => {
+                    const port = protocol === 'http' ? p.http_port : p.socks_port;
+                    const usageText = p.usage === -1 ? 'N/A' : `${p.usage}%`;
+                    selectParent.innerHTML += `
+                        <option value="${p.id}">
+                            ${p.service_provider_name} | ${p.city_name} | Port:${port} | Usage:${usageText}
+                        </option>
+                    `;
+                });
+        }
+        
+        selectParent.disabled = false;
+    } catch (e) {
+        console.error('Erreur:', e);
+        selectParent.innerHTML = '<option disabled>Erreur chargement</option>';
+    }
+}
+
+// Confirmer le changement
+async function confirmChangeProxy() {
+    const countryId = document.getElementById('changeCountry').value;
+    const protocol = document.getElementById('changeProtocol').value;
+    const parentProxyId = document.getElementById('updateParent').value;
+    
+    if (!countryId || !protocol || !parentProxyId) {
+        alert('❌ Remplissez tous les champs');
+        return;
+    }
+    
+    const confirmBtn = document.getElementById('confirmChangeParent');
+    
+    try {
+        confirmBtn.disabled = true;
+        confirmBtn.innerHTML = '⏳ Changement...';
+        
+        const result = await apiCall(`/api/proxies/${window.currentProxyId}/change-parent`, {
+            method: 'PUT',
+            body: JSON.stringify({
+                parent_proxy_id: parseInt(parentProxyId)
+            })
+        });
+        
+        showToast('✅ ' + result.message, 'success');
+        
+        // Fermer
+        bootstrap.Modal.getInstance(document.getElementById('changeProxyModal')).hide();
+        
+        // Recharger
+        await loadMyProxies();
+        
+    } catch (error) {
+        showToast('❌ ' + (error.message || 'Erreur'), 'error');
+    } finally {
+        confirmBtn.disabled = false;
+        confirmBtn.innerHTML = '✅ Confirmer';
+    }
+}
 
 function copyToClipboard(text) {
     navigator.clipboard.writeText(text).then(() => {
