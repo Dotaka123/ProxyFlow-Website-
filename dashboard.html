@@ -715,11 +715,10 @@ async function loadProxiesForChange(countryId, protocol) {
 // Confirmer le changement
 async function confirmChangeProxy() {
     const countryId = document.getElementById('changeCountry').value;
-    const protocol = document.getElementById('changeProtocol').value;
     const parentProxyId = document.getElementById('updateParent').value;
     
-    if (!countryId || !protocol || !parentProxyId) {
-        alert('❌ Remplissez tous les champs');
+    if (!countryId || !parentProxyId) {
+        showToast('❌ Remplissez tous les champs', 'error');
         return;
     }
     
@@ -731,21 +730,26 @@ async function confirmChangeProxy() {
         
         const result = await apiCall(`/api/proxies/${window.currentProxyId}/change-parent`, {
             method: 'PUT',
-            body: JSON.stringify({
-                parent_proxy_id: parseInt(parentProxyId)
-            })
+            body: JSON.stringify({ parent_proxy_id: parseInt(parentProxyId) })
         });
         
-        showToast('✅ ' + result.message, 'success');
-        
-        // Fermer
+        showToast('✅ Proxy changé avec succès!', 'success');
         bootstrap.Modal.getInstance(document.getElementById('changeProxyModal')).hide();
-        
-        // Recharger
         await loadMyProxies();
         
     } catch (error) {
-        showToast('❌ ' + (error.message || 'Erreur'), 'error');
+        // Vérifier si c'est un proxy expiré
+        if (error.message.includes('404')) {
+            showToast('❌ Ce proxy n\'existe plus ou a expiré', 'error');
+            bootstrap.Modal.getInstance(document.getElementById('changeProxyModal')).hide();
+            await loadMyProxies();
+        } else if (error.message.includes('expired')) {
+            showToast('❌ Le proxy a expiré, impossible de le modifier', 'error');
+            bootstrap.Modal.getInstance(document.getElementById('changeProxyModal')).hide();
+            await loadMyProxies();
+        } else {
+            showToast('❌ ' + (error.message || 'Erreur'), 'error');
+        }
     } finally {
         confirmBtn.disabled = false;
         confirmBtn.innerHTML = '✅ Confirmer';
