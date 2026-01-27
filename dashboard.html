@@ -588,14 +588,24 @@ async function loadMyProxies() {
 }
     /* ================= CHANGEMENT DE PAYS ================= */
 
-// Ouvrir le modal
 async function openChangeProxyModal(proxyId) {
     window.currentProxyId = proxyId;
     
-    // Charger les pays
-    loadCountriesForChange();
+    // Vérifier si le proxy n'est pas expiré
+    const proxies = await apiCall('/api/my-proxies');
+    const proxy = proxies.find(p => p._id === proxyId);
     
-    // Réinitialiser
+    if (proxy) {
+        const expiresDate = proxy.expiresAt ? new Date(proxy.expiresAt) : null;
+        const now = new Date();
+        const isExpired = expiresDate && expiresDate < now;
+        
+        if (isExpired) {
+            showToast('❌ Ce proxy a expiré', 'error');
+            return;
+        }
+    }
+    
     document.getElementById('changeCountry').value = '';
     document.getElementById('changeProtocol').value = '';
     document.getElementById('updateParent').value = '';
@@ -603,7 +613,7 @@ async function openChangeProxyModal(proxyId) {
     document.getElementById('proxyGroup').style.display = 'none';
     document.getElementById('confirmChangeParent').style.display = 'none';
     
-    // Ouvrir
+    await loadCountriesForChange();
     const modal = new bootstrap.Modal(document.getElementById('changeProxyModal'));
     modal.show();
 }
