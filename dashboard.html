@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Proxy Shop</title>
+
+    <!-- CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/style.css">
+
+    <style>
+        .header-dashboard {
+            background: var(--header-bg);
+            color: white;
+            padding: 1.5rem 0;
+            margin-bottom: 2rem;
+            box-shadow: var(--shadow);
+        }
+
+        .balance-card {
+            background: var(--header-bg);
+            color: white;
+            border: none;
+        }
+
+        .balance-amount {
+            font-size: 2.5rem;
+            font-weight: 800;
+        }
+
+        .proxy-item {
+            border-left: 4px solid var(--primary-color);
+            transition: transform 0.2s;
+        }
+
+        .proxy-item:hover {
+            transform: translateX(5px);
+        }
+
+        .proxy-credentials {
+            background-color: var(--bg-color);
+            padding: 1rem;
+            border-radius: 0.5rem;
+            font-family: 'Fira Code', monospace;
+            font-size: 0.9rem;
+            position: relative;
+        }
+
+        .copy-btn {
+            position: absolute;
+            top: 0.5rem;
+            right: 0.5rem;
+            padding: 0.25rem 0.5rem;
+            font-size: 0.75rem;
+        }
+
+        .badge-protocol {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        .expired-proxy {
+            opacity: 0.6;
+            filter: grayscale(0.5);
+        }
+
+        .nav-tabs {
+            border-bottom: none;
+            gap: 1rem;
+        }
+
+        .nav-tabs .nav-link {
+            border: none;
+            color: var(--text-muted);
+            font-weight: 600;
+            padding: 1rem 1.5rem;
+            border-radius: 0.5rem;
+            transition: all 0.2s;
+        }
+
+        .nav-tabs .nav-link.active {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        .nav-tabs .nav-link:hover:not(.active) {
+            background-color: rgba(102, 126, 234, 0.1);
+            color: var(--primary-color);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Header -->
+    <header class="header-dashboard">
+        <div class="container">
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+                <div class="d-flex align-items-center">
+                    <i class="fas fa-globe fs-2 me-2"></i>
+                    <h1 class="h3 mb-0 fw-bold brand-name" data-i18n="brand_name">Proxy Shop</h1>
+                </div>
+
+                <div class="d-flex align-items-center gap-3">
+                    <div class="nav-utils">
+                        <button class="util-btn text-white" onclick="toggleLang()">
+                            <span id="langIcon">🇫🇷</span>
+                        </button>
+                        <button class="util-btn text-white" onclick="toggleTheme()">
+                            <i id="themeIcon" class="fas fa-moon"></i>
+                        </button>
+                    </div>
+                    <div class="dropdown">
+                        <button class="btn btn-light dropdown-toggle d-flex align-items-center gap-2" type="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-user-circle"></i>
+                            <span id="userEmail"></span>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end shadow">
+                            <li><a class="dropdown-item text-danger" href="#" onclick="logout()">
+                                <i class="fas fa-sign-out-alt me-2"></i><span data-i18n="nav_logout">Déconnexion</span>
+                            </a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="container">
+        <div class="row g-4">
+            
+            <!-- Left Column: Balance & Stats -->
+            <div class="col-lg-4">
+                <div class="card balance-card p-4 text-center">
+                    <h2 class="h5 mb-3" data-i18n="your_balance">Votre Solde</h2>
+                    <div class="balance-amount mb-4" id="balance">$0.00</div>
+                    <a href="recharge.html" class="btn btn-light btn-lg w-100 fw-bold">
+                        <i class="fas fa-plus-circle me-2"></i><span data-i18n="recharge_btn">Recharger</span>
+                    </a>
+                </div>
+
+                <div class="card p-4">
+                    <h3 class="h5 mb-4" data-i18n="buy_proxy_title">Acheter un Proxy</h3>
+
+                    <form id="buyProxyForm">
+                        <div class="mb-3">
+                            <label class="form-label" data-i18n="package_label">Package</label>
+                            <select id="packageType" class="form-control" required>
+                                <option value="" data-i18n="loading">Sélectionnez un package</option>
+                                <option value="1">Golden Package (Pays changeables)</option>
+                                <option value="2">Silver Package (Pays fixe)</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label" data-i18n="duration_label">Durée</label>
+                            <select id="duration" class="form-control" required disabled>
+                                <option value="">Durée</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label" data-i18n="protocol_label">Protocole</label>
+                            <select id="protocol" class="form-control" required>
+                                <option value="">Protocol</option>
+                                <option value="http">HTTP</option>
+                                <option value="socks">SOCKS</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label" data-i18n="country_label">Pays</label>
+                            <select id="country" class="form-control" disabled>
+                                <option value="">Chargement...</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label" data-i18n="parent_proxy_label">Proxy Parent</label>
+                            <select id="parentProxy" class="form-control" required disabled>
+                                <option value="">Sélectionnez un pays</option>
+                            </select>
+                        </div>
+
+                        <div class="row g-2 mb-4">
+                            <div class="col-6">
+                                <label class="form-label small">Username</label>
+                                <input type="text" id="username" class="form-control form-control-sm" placeholder="Auto">
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label small">Password</label>
+                                <input type="text" id="password" class="form-control form-control-sm" placeholder="Auto">
+                            </div>
+                        </div>
+
+                        <div id="priceInfo" class="alert alert-info py-2 text-center mb-4" style="display: none;">
+                            <span class="fw-bold">Prix: $<span id="priceAmount">0.00</span></span>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary w-100 py-3" id="buyBtn" disabled>
+                            <i class="fas fa-shopping-cart me-2"></i><span data-i18n="buy_btn">Acheter</span>
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Right Column: Proxies & History -->
+            <div class="col-lg-8">
+
+                <ul class="nav nav-tabs mb-4" id="dashboardTabs" role="tablist">
+                    <li class="nav-item">
+                        <button class="nav-link active" id="proxies-tab" data-bs-toggle="tab" data-bs-target="#proxies" type="button">
+                            <i class="fas fa-list me-2"></i><span data-i18n="my_proxies_title">Mes Proxies</span>
+                        </button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link" id="history-tab" data-bs-toggle="tab" data-bs-target="#history" type="button">
+                            <i class="fas fa-history me-2"></i><span data-i18n="history_title">Historique</span>
+                        </button>
+                    </li>
+                </ul>
+
+                <div class="tab-content">
+                    <!-- Proxies Tab -->
+                    <div class="tab-pane fade show active" id="proxies">
+                        <div id="myProxies" class="row g-3">
+                            <div class="col-12 text-center py-5">
+                                <div class="spinner-border text-primary" role="status"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- History Tab -->
+                    <div class="tab-pane fade" id="history">
+                        <div id="myTransactions">
+                            <div class="col-12 text-center py-5">
+                                <div class="spinner-border text-primary" role="status"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Changement de Pays -->
+    <div class="modal fade" id="changeProxyModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title fw-bold">
+                        <i class="fas fa-exchange-alt me-2"></i><span data-i18n="modal_change_title">Changer de Pays</span>
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="mb-3">
+                        <label class="form-label" data-i18n="country_label">Choisir un pays</label>
+                        <select id="changeCountry" class="form-control">
+                            <option value="">-- Sélectionner --</option>
+                        </select>
+                    </div>
+
+                    <div id="protocolGroup" class="mb-3" style="display: none;">
+                        <label class="form-label" data-i18n="protocol_label">Protocole</label>
+                        <select id="changeProtocol" class="form-control">
+                            <option value="">-- Sélectionner --</option>
+                            <option value="http">HTTP</option>
+                            <option value="socks5">SOCKS5</option>
+                        </select>
+                    </div>
+
+                    <div id="proxyGroup" class="mb-0" style="display: none;">
+                        <label class="form-label" data-i18n="parent_proxy_label">Sélectionner un proxy</label>
+                        <select id="updateParent" class="form-control">
+                            <option value="">-- Charger les proxies --</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 p-4 pt-0">
+                    <button type="button" class="btn btn-outline-secondary px-4" data-bs-dismiss="modal" data-i18n="cancel_btn">Annuler</button>
+                    <button type="button" class="btn btn-primary px-4" id="confirmChangeParent" style="display: none;">
+                        <i class="fas fa-check me-2"></i><span data-i18n="confirm_btn">Confirmer</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="js/config.js"></script>
+<script src="js/notifications.js"></script>
+<script src="js/theme-lang.js"></script>
+<script>
+/* ================= AUTH ================= */
+const token = localStorage.getItem('token');
+if (!token) window.location.href = 'login.html';
+
+let user = JSON.parse(localStorage.getItem('user') || '{}');
+let prices = {};
+let GOLDEN_PKG_ID = 1;
+
+/* ================= PRICES ================= */
+async function loadPrices() {
+    prices = await apiCall('/api/prices');
+    GOLDEN_PKG_ID = prices?.golden?.package_id || 1;
+}
+
+/* ================= COUNTRIES ================= */
+async function loadCountries(pkgId) {
+    const countries = await apiCall(`/api/countries?pkg_id=${pkgId}`);
+    const select = document.getElementById('country');
+    const selectChange = document.getElementById('changeCountry');
+    const lang = localStorage.getItem('lang') || 'fr';
+    const selectCountryText = translations[lang].select_country;
+
+    const html = `<option value="">${selectCountryText}</option>` +
+                 countries.map(c => `<option value="${c.id}">${c.country_name}</option>`).join('');
+
+    if (select) {
+        select.innerHTML = html;
+        select.disabled = false;
+    }
+    if (selectChange) {
+        selectChange.innerHTML = html;
+    }
+}
+
+/* ================= PARENT PROXIES ================= */
+async function loadParentProxies(pkgId, countryId) {
+    let url = `/api/parent-proxies?pkg_id=${pkgId}`;
+    if (countryId) url += `&country_id=${countryId}`;
+
+    const proxies = await apiCall(url);
+    const select = document.getElementById('parentProxy');
+    const lang = localStorage.getItem('lang') || 'fr';
+    const selectProxyText = translations[lang].select_proxy;
+
+    select.innerHTML = `<option value="">${selectProxyText}</option>`;
+
+    proxies
+        .filter(p => p.status === 'ACTIVE')
+        .filter(p => p.usage === -1 || p.usage < 90)
+        .forEach(p => {
+            let techBadge = '⚪';
+            if (p.technology === '5G') techBadge = '🔵';
+            if (p.technology === '4G') techBadge = '🟢';
+            if (p.technology === '3.5G') techBadge = '🟡';
+
+            const usageText = p.usage === -1 ? 'N/A' : `${p.usage}%`;
+            const city = p.city_name || 'N/A';
+
+            select.innerHTML += `
+                <option value="${p.id}">
+                    ${techBadge} ${p.technology} | ${city} | HTTP:${p.http_port} | SOCKS:${p.socks_port} | Usage:${usageText}
+                </option>
+            `;
+        });
+
+    select.disabled = false;
+    document.getElementById('buyBtn').disabled = false;
+}
+
+/* ================= EVENTS ================= */
+document.getElementById('packageType').addEventListener('change', async e => {
+    const pkgId = e.target.value;
+    const durationSelect = document.getElementById('duration');
+    if (!pkgId) return durationSelect.disabled = true;
+
+    const type = pkgId === '1' ? 'golden' : 'silver';
+    const list = prices[type]?.prices || [];
+
+    durationSelect.innerHTML = `<option value="">${localStorage.getItem('lang') === 'en' ? 'Duration' : 'Durée'}</option>`;
+    list.forEach(p => {
+        durationSelect.innerHTML += `
+            <option value="${p.duration}">
+                ${p.label} - $${p.price}
+            </option>
+        `;
+    });
+
+    durationSelect.disabled = false;
+    await loadCountries(pkgId);
+});
+
+document.getElementById('country').addEventListener('change', async e => {
+    const countryId = e.target.value;
+    const pkgId = document.getElementById('packageType').value;
+    if (countryId && pkgId) await loadParentProxies(pkgId, countryId);
+});
+
+document.getElementById('duration').addEventListener('change', e => {
+    const d = parseFloat(e.target.value);
+    const pkgId = document.getElementById('packageType').value;
+    const type = pkgId === '1' ? 'golden' : 'silver';
+
+    const price = prices[type]?.prices.find(p => p.duration === d);
+    if (price) {
+        document.getElementById('priceInfo').style.display = 'block';
+        document.getElementById('priceAmount').textContent = price.price.toFixed(2);
+    }
+});
+
+/* ================= BUY ================= */
+document.getElementById('buyProxyForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const buyBtn = document.getElementById('buyBtn');
+    const originalText = buyBtn.innerHTML;
+    buyBtn.disabled = true;
+    buyBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>...';
+
+    try {
+        const proxyData = {
+            parent_proxy_id: document.getElementById('parentProxy').value,
+            package_id: document.getElementById('packageType').value,
+            protocol: document.getElementById('protocol').value,
+            duration: document.getElementById('duration').value,
+            username: document.getElementById('username').value || undefined,
+            password: document.getElementById('password').value || undefined
+        };
+
+        const result = await apiCall('/api/create-proxy', {
+            method: 'POST',
+            body: JSON.stringify(proxyData)
+        });
+
+        user.balance = result.userBalance;
+        localStorage.setItem('user', JSON.stringify(user));
+        refreshProfile();
+
+        showToast(localStorage.getItem('lang') === 'en' ? 'Proxy purchased successfully!' : 'Proxy acheté avec succès!', 'success');
+        document.getElementById('buyProxyForm').reset();
+        document.getElementById('priceInfo').style.display = 'none';
+
+        await loadMyProxies();
+        await loadTransactions();
+
+    } catch (error) {
+        showToast(error.message || 'Error', 'error');
+    } finally {
+        buyBtn.disabled = false;
+        buyBtn.innerHTML = originalText;
+    }
+});
+
+async function loadMyProxies() {
+    const container = document.getElementById('myProxies');
+    container.innerHTML = '<div class="col-12 text-center py-5"><div class="spinner-border text-primary"></div></div>';
+
+    try {
+        const proxies = await apiCall('/api/my-proxies');
+        const lang = localStorage.getItem('lang');
+
+        if (!proxies || !proxies.length) {
+            container.innerHTML = `<div class="col-12 text-center py-5 text-muted">${lang === 'en' ? 'No active proxies.' : 'Aucun proxy actif.'}</div>`;
+            return;
+        }
+
+        container.innerHTML = '';
+        proxies.forEach(p => {
+            const expiresDate = p.expiresAt ? new Date(p.expiresAt) : null;
+            const now = new Date();
+            const isExpired = expiresDate && expiresDate < now;
+            const expiresStr = expiresDate ? expiresDate.toLocaleString() : 'N/A';
+            
+            const packageType = (p.packageType || 'UNKNOWN').toUpperCase();
+            const protocol = (p.protocol || 'HTTP').toUpperCase();
+            const host = p.host || 'N/A';
+            const port = p.port || 'N/A';
+            const username = p.username || 'N/A';
+            const password = p.password || 'N/A';
+
+            let actionHtml = '';
+            if (packageType === 'GOLDEN' && !isExpired) {
+                actionHtml = `
+                    <button class="btn btn-outline-primary btn-sm w-100 mt-3" onclick="openChangeProxyModal('${p._id}')">
+                        <i class="fas fa-map-marker-alt me-2"></i>${lang === 'en' ? 'Change Location' : 'Changer de Pays'}
+                    </button>
+                `;
+            }
+
+            const expiredBadge = isExpired ? `<span class="badge bg-danger ms-2">${lang === 'en' ? 'EXPIRED' : 'EXPIRÉ'}</span>` : '';
+
+            container.innerHTML += `
+                <div class="col-md-6">
+                    <div class="card p-3 proxy-item ${isExpired ? 'expired-proxy' : ''}">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <span class="badge bg-primary-subtle text-primary fw-bold">${packageType}</span>
+                            <div>
+                                <span class="badge badge-protocol">${protocol}</span>
+                                ${expiredBadge}
+                            </div>
+                        </div>
+                        <div class="proxy-credentials mb-3">
+                            <div class="text-truncate pe-5">${host}:${port}</div>
+                            <div class="small text-muted mt-1 text-truncate">User: ${username} | Pass: ${password}</div>
+                            <button class="btn btn-primary btn-sm copy-btn" onclick="copyToClipboard('${host}:${port}:${username}:${password}')">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                        </div>
+                        <div class="small text-muted">
+                            <i class="far fa-clock me-1"></i> ${lang === 'en' ? 'Expires' : 'Expire'}: ${expiresStr}
+                        </div>
+                        ${actionHtml}
+                    </div>
+                </div>
+            `;
+        });
+    } catch (error) {
+        container.innerHTML = `<div class="col-12"><div class="alert alert-danger">${error.message}</div></div>`;
+    }
+}
+
+/* ================= CHANGEMENT DE PAYS ================= */
+
+async function openChangeProxyModal(proxyId) {
+    window.currentProxyId = proxyId;
+    
+    document.getElementById('changeCountry').value = '';
+    document.getElementById('changeProtocol').value = '';
+    document.getElementById('updateParent').value = '';
+    document.getElementById('protocolGroup').style.display = 'none';
+    document.getElementById('proxyGroup').style.display = 'none';
+    document.getElementById('confirmChangeParent').style.display = 'none';
+    
+    await loadCountries(1); // Golden package is always 1
+    const modal = new bootstrap.Modal(document.getElementById('changeProxyModal'));
+    modal.show();
+}
+
+document.getElementById('changeCountry').addEventListener('change', function() {
+    if (this.value) {
+        document.getElementById('protocolGroup').style.display = 'block';
+    } else {
+        document.getElementById('protocolGroup').style.display = 'none';
+    }
+});
+
+document.getElementById('changeProtocol').addEventListener('change', function() {
+    const countryId = document.getElementById('changeCountry').value;
+    if (this.value && countryId) {
+        document.getElementById('proxyGroup').style.display = 'block';
+        document.getElementById('confirmChangeParent').style.display = 'block';
+        loadProxiesForChange(countryId, this.value);
+    }
+});
+
+async function loadProxiesForChange(countryId, protocol) {
+    const selectParent = document.getElementById('updateParent');
+    const lang = localStorage.getItem('lang') || 'fr';
+    try {
+        selectParent.innerHTML = `<option value="">${translations[lang].loading}</option>`;
+        const proxies = await apiCall(`/api/parent-proxies?pkg_id=1&country_id=${countryId}`);
+        
+        selectParent.innerHTML = `<option value="">${translations[lang].select_proxy}</option>`;
+        
+        proxies.filter(p => {
+            const port = protocol === 'http' ? p.http_port : p.socks_port;
+            return port > 0 && p.status === 'ACTIVE' && (p.usage === -1 || p.usage < 90);
+        }).forEach(p => {
+            const port = protocol === 'http' ? p.http_port : p.socks_port;
+            selectParent.innerHTML += `<option value="${p.id}">${p.city_name || 'N/A'} | Port:${port} | Usage:${p.usage === -1 ? 'N/A' : p.usage+'%'}</option>`;
+        });
+    } catch (e) {
+        selectParent.innerHTML = '<option disabled>Error</option>';
+    }
+}
+
+document.getElementById('confirmChangeParent').addEventListener('click', async function() {
+    const parentId = document.getElementById('updateParent').value;
+    const protocol = document.getElementById('changeProtocol').value;
+    
+    if (!parentId) return showToast('Select a proxy', 'error');
+
+    this.disabled = true;
+    const originalText = this.innerHTML;
+    this.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>';
+
+    try {
+        await apiCall(`/api/proxies/${window.currentProxyId}/change-parent`, {
+            method: 'PUT',
+            body: JSON.stringify({
+                parent_proxy_id: parseInt(parentId),
+                protocol: protocol.toUpperCase()
+            })
+        });
+        
+        showToast(localStorage.getItem('lang') === 'en' ? 'Location changed!' : 'Localisation changée!', 'success');
+        bootstrap.Modal.getInstance(document.getElementById('changeProxyModal')).hide();
+        await loadMyProxies();
+    } catch (error) {
+        showToast(error.message, 'error');
+    } finally {
+        this.disabled = false;
+        this.innerHTML = originalText;
+    }
+});
+
+function copyToClipboard(text) {
+    navigator.clipboard.writeText(text).then(() => {
+        showToast(localStorage.getItem('lang') === 'en' ? 'Copied to clipboard!' : 'Copié !', 'success');
+    });
+}
+
+async function loadTransactions() {
+    const container = document.getElementById('myTransactions');
+    const lang = localStorage.getItem('lang');
+
+    try {
+        const transactions = await apiCall('/api/transactions');
+        if (!transactions || !transactions.length) {
+            container.innerHTML = `<div class="text-center py-5 text-muted">${lang === 'en' ? 'No transactions found.' : 'Aucune transaction.'}</div>`;
+            return;
+        }
+
+        container.innerHTML = transactions.map(t => {
+            const typeClass = t.type === 'credit' ? 'success' : 'danger';
+            const icon = t.type === 'credit' ? 'fa-arrow-down' : 'fa-arrow-up';
+            return `
+                <div class="card p-3 mb-2 border-0 shadow-sm">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div class="d-flex align-items-center">
+                            <div class="bg-${typeClass}-subtle text-${typeClass} p-2 rounded me-3">
+                                <i class="fas ${icon}"></i>
+                            </div>
+                            <div>
+                                <div class="fw-bold">${t.description || 'Transaction'}</div>
+                                <div class="small text-muted">${new Date(t.createdAt).toLocaleString()}</div>
+                            </div>
+                        </div>
+                        <div class="fw-bold text-${typeClass}">
+                            ${t.type === 'credit' ? '+' : '-'}$${t.amount.toFixed(2)}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    } catch (error) {
+        container.innerHTML = `<div class="alert alert-danger">${error.message}</div>`;
+    }
+}
+
+function refreshProfile() {
+    document.getElementById('userEmail').textContent = user.email || '';
+    document.getElementById('balance').textContent = '$' + (user.balance || 0).toFixed(2);
+}
+
+async function fetchUserProfile() {
+    try {
+        const userData = await apiCall('/api/auth/me');
+        user = userData;
+        localStorage.setItem('user', JSON.stringify(user));
+        refreshProfile();
+    } catch (error) {
+        console.error('Error fetching profile:', error);
+    }
+}
+
+async function init() {
+    refreshProfile();
+    await loadPrices();
+    await fetchUserProfile();
+    await loadMyProxies();
+    await loadTransactions();
+}
+
+init();
+</script>
+<script src="js/tawk.js"></script>
+</body>
+</html>
