@@ -30,14 +30,35 @@
             font-weight: bold;
             margin-right: 1rem;
         }
-        .email-display {
+        .payment-address {
             background: var(--bg-color);
             padding: 1rem;
             border-radius: 0.5rem;
             font-weight: bold;
             color: var(--primary-color);
-            font-size: 1.25rem;
+            font-size: 1.1rem;
             border: 2px dashed var(--primary-color);
+            word-break: break-all;
+            position: relative;
+        }
+        .copy-btn {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            cursor: pointer;
+            color: var(--primary-color);
+            padding: 0.5rem;
+        }
+        .copy-btn:hover {
+            opacity: 0.7;
+        }
+        .payment-method-card {
+            border: 2px solid var(--border-color);
+            border-radius: 0.5rem;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            background: var(--card-bg);
         }
     </style>
 </head>
@@ -84,25 +105,45 @@
                         <div class="col-md-12">
                             <div class="d-flex align-items-center mb-3">
                                 <div class="step-number">1</div>
-                                <h3 class="h5 mb-0">Envoyer le paiement</h3>
+                                <h3 class="h5 mb-0">Choisir la méthode de paiement</h3>
                             </div>
-                            <div class="p-3 bg-light rounded-3 text-center mb-4 border border-light-subtle">
-                                <p class="text-muted mb-2">Envoyez le montant souhaité sur FaucetPay à :</p>
-                                <div class="email-display d-inline-block">hugoasmin@gmail.com</div>
-                            </div>
+                            <select id="paymentMethod" class="form-select py-2" onchange="updatePaymentInfo()">
+                                <option value="">Sélectionner une méthode...</option>
+                                <option value="usdt">Trust Wallet - USDT TRC-20</option>
+                                <option value="ltc">Trust Wallet - LTC</option>
+                                <option value="mvola">Mvola</option>
+                            </select>
                         </div>
 
-                        <div class="col-md-6">
+                        <div class="col-md-12" id="paymentInfoContainer" style="display: none;">
                             <div class="d-flex align-items-center mb-3">
                                 <div class="step-number">2</div>
-                                <h3 class="h5 mb-0">Username FaucetPay</h3>
+                                <h3 class="h5 mb-0">Envoyer le paiement à cette adresse</h3>
                             </div>
-                            <input type="text" id="fpUsername" class="form-control py-2" placeholder="Ex: tonnyignace86">
+                            <div class="payment-method-card">
+                                <div class="text-muted mb-2 small" id="paymentLabel">Adresse</div>
+                                <div class="payment-address position-relative">
+                                    <span id="paymentAddress"></span>
+                                    <i class="fas fa-copy copy-btn" onclick="copyAddress()" title="Copier"></i>
+                                </div>
+                                <div id="mvolaName" class="mt-2 text-muted small" style="display: none;">
+                                    <strong>Nom du compte:</strong> Andoniaina
+                                </div>
+                            </div>
                         </div>
 
-                        <div class="col-md-6">
+                        <div class="col-md-12" id="transactionContainer" style="display: none;">
                             <div class="d-flex align-items-center mb-3">
                                 <div class="step-number">3</div>
+                                <h3 class="h5 mb-0">ID de transaction / Référence</h3>
+                            </div>
+                            <input type="text" id="transactionId" class="form-control py-2" placeholder="Ex: 0x1234... ou référence Mvola">
+                            <div class="small text-muted mt-1">Entrez l'ID de transaction ou la référence de paiement</div>
+                        </div>
+
+                        <div class="col-md-6" id="amountContainer" style="display: none;">
+                            <div class="d-flex align-items-center mb-3">
+                                <div class="step-number">4</div>
                                 <h3 class="h5 mb-0">Montant ($)</h3>
                             </div>
                             <input type="number" id="amount" class="form-control py-2" step="0.01" min="0.25" placeholder="0.25">
@@ -110,7 +151,7 @@
                         </div>
                     </div>
 
-                    <button class="btn btn-primary w-100 py-3 mt-4 fw-bold" onclick="submitRecharge()">
+                    <button class="btn btn-primary w-100 py-3 mt-4 fw-bold" onclick="submitRecharge()" id="submitBtn" style="display: none;">
                         <i class="fas fa-paper-plane me-2"></i> J'ai effectué le paiement
                     </button>
                 </div>
@@ -152,28 +193,107 @@
     document.getElementById('userEmail').textContent = user.email;
     document.getElementById('userBalance').textContent = (user.balance || 0).toFixed(2);
 
-    async function submitRecharge() {
-        const faucetpayUsername = document.getElementById('fpUsername').value.trim();
-        const amount = parseFloat(document.getElementById('amount').value);
+    const paymentMethods = {
+        usdt: {
+            label: 'Adresse USDT TRC-20',
+            address: 'TFqmiR2RQBXURXfqW58Adqd4qJfmCh4vgr',
+            type: 'USDT TRC-20'
+        },
+        ltc: {
+            label: 'Adresse LTC',
+            address: 'ltc1qzxspnu946aha7pnycqk092rtz4w6llvm2czt40',
+            type: 'LTC'
+        },
+        mvola: {
+            label: 'Numéro Mvola',
+            address: '0384441129',
+            type: 'Mvola'
+        }
+    };
 
-        if (!faucetpayUsername || !amount || amount < 0.25) {
-            showToast('Remplis correctement le nom FaucetPay et le montant (min 0.25$)', 'error');
+    function updatePaymentInfo() {
+        const method = document.getElementById('paymentMethod').value;
+        const infoContainer = document.getElementById('paymentInfoContainer');
+        const transactionContainer = document.getElementById('transactionContainer');
+        const amountContainer = document.getElementById('amountContainer');
+        const submitBtn = document.getElementById('submitBtn');
+        const mvolaName = document.getElementById('mvolaName');
+
+        if (!method) {
+            infoContainer.style.display = 'none';
+            transactionContainer.style.display = 'none';
+            amountContainer.style.display = 'none';
+            submitBtn.style.display = 'none';
             return;
         }
+
+        const paymentInfo = paymentMethods[method];
+        document.getElementById('paymentLabel').textContent = paymentInfo.label;
+        document.getElementById('paymentAddress').textContent = paymentInfo.address;
+        
+        if (method === 'mvola') {
+            mvolaName.style.display = 'block';
+        } else {
+            mvolaName.style.display = 'none';
+        }
+
+        infoContainer.style.display = 'block';
+        transactionContainer.style.display = 'block';
+        amountContainer.style.display = 'block';
+        submitBtn.style.display = 'block';
+    }
+
+    function copyAddress() {
+        const address = document.getElementById('paymentAddress').textContent;
+        navigator.clipboard.writeText(address).then(() => {
+            showToast('Adresse copiée !', 'success');
+        }).catch(() => {
+            showToast('Erreur lors de la copie', 'error');
+        });
+    }
+
+    async function submitRecharge() {
+        const method = document.getElementById('paymentMethod').value;
+        const transactionId = document.getElementById('transactionId').value.trim();
+        const amount = parseFloat(document.getElementById('amount').value);
+
+        if (!method) {
+            showToast('Veuillez sélectionner une méthode de paiement', 'error');
+            return;
+        }
+
+        if (!transactionId) {
+            showToast('Veuillez entrer l\'ID de transaction ou la référence', 'error');
+            return;
+        }
+
+        if (!amount || amount < 0.25) {
+            showToast('Montant invalide (minimum 0.25$)', 'error');
+            return;
+        }
+
+        // On combine la méthode et l'ID de transaction dans le champ faucetpayUsername
+        // pour garder la compatibilité avec l'API existante
+        const faucetpayUsername = `${paymentMethods[method].type} | TxID: ${transactionId}`;
 
         try {
             await apiCall('/api/recharge-request', {
                 method: 'POST',
-                body: JSON.stringify({ amount, faucetpayUsername })
+                body: JSON.stringify({ 
+                    amount, 
+                    faucetpayUsername: faucetpayUsername
+                })
             });
 
             showToast('Demande envoyée avec succès. En attente de validation.', 'success');
-            document.getElementById('fpUsername').value = '';
+            document.getElementById('paymentMethod').value = '';
+            document.getElementById('transactionId').value = '';
             document.getElementById('amount').value = '';
+            updatePaymentInfo();
             await loadRechargeHistory();
 
         } catch (err) {
-            showToast(err.message || 'Erreur lors de l’envoi', 'error');
+            showToast(err.message || 'Erreur lors de l\'envoi', 'error');
         }
     }
 
@@ -187,7 +307,7 @@
             }
 
             let html = '<div class="table-responsive"><table class="table table-hover align-middle">';
-            html += '<thead><tr><th>Date</th><th>Montant</th><th>Statut</th></tr></thead><tbody>';
+            html += '<thead><tr><th>Date</th><th>Info Paiement</th><th>Montant</th><th>Statut</th></tr></thead><tbody>';
 
             recharges.forEach(r => {
                 let badgeClass = 'bg-info';
@@ -197,6 +317,7 @@
 
                 html += `<tr>
                     <td>${new Date(r.createdAt).toLocaleDateString()}</td>
+                    <td class="small">${r.faucetpayUsername || 'N/A'}</td>
                     <td class="fw-bold">$${r.amount.toFixed(2)}</td>
                     <td><span class="badge ${badgeClass}">${statusText}</span></td>
                 </tr>`;
