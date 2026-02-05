@@ -397,6 +397,11 @@ document.getElementById('duration').addEventListener('change', e => {
 
     const price = prices[type]?.prices.find(p => p.duration === d);
     if (price) {
+        // Ajout de 0.5$ DE PROFIT uniquement pour Silver 7 jours
+        if (type === 'silver' && d === 7) {
+            // Prix API = 3.00$ → On affiche 3.50$ (profit de 0.50$)
+            price.price = parseFloat(price.price) + 0.5;
+        }
         document.getElementById('priceInfo').style.display = 'block';
         document.getElementById('priceAmount').textContent = price.price.toFixed(2);
     }
