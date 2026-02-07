@@ -524,6 +524,7 @@ document.getElementById('duration').addEventListener('change', e => {
 });
 
 /* ================= BUY ================= */
+/* ================= BUY ================= */
 document.getElementById('buyProxyForm').addEventListener('submit', async (e) => {
     e.preventDefault();
 
@@ -572,22 +573,33 @@ document.getElementById('buyProxyForm').addEventListener('submit', async (e) => 
         await loadTransactions();
 
     } catch (error) {
-        // Gérer les erreurs spécifiques
-        const errorMessage = error.message || '';
+        console.log('❌ Erreur capturée:', error); // Debug
         
-        // Vérifier si c'est une erreur de credentials déjà utilisés
-        if (errorMessage.toLowerCase().includes('already in use') || 
+        // Récupérer le message d'erreur
+        const errorMessage = error.message || error.error || '';
+        console.log('📝 Message d\'erreur:', errorMessage); // Debug
+        
+        // ✅ Afficher TOUTES les erreurs liées aux credentials
+        const isCredentialError = 
+            errorMessage.toLowerCase().includes('username') ||
+            errorMessage.toLowerCase().includes('password') ||
+            errorMessage.toLowerCase().includes('minuscule') ||
+            errorMessage.toLowerCase().includes('lowercase') ||
+            errorMessage.toLowerCase().includes('already in use') ||
             errorMessage.toLowerCase().includes('déjà utilisé') ||
             errorMessage.toLowerCase().includes('already exists') ||
             errorMessage.toLowerCase().includes('duplicate') ||
-            errorMessage.toLowerCase().includes('exist')) {
-            
-            const msg = lang === 'en'
-                ? 'These credentials are already in use. Please choose a different username/password.'
-                : 'Ces identifiants sont déjà utilisés. Veuillez choisir un username/password différent.';
-            showCredentialsError(msg);
+            errorMessage.toLowerCase().includes('exist') ||
+            errorMessage.toLowerCase().includes('contenir') ||
+            errorMessage.toLowerCase().includes('must contain');
+        
+        if (isCredentialError) {
+            // ✅ Afficher dans la div ET en toast
+            showCredentialsError(errorMessage);
+            showToast(errorMessage, 'error');
         } else {
-            showToast(errorMessage || 'Error', 'error');
+            // Autre type d'erreur
+            showToast(errorMessage || 'Erreur', 'error');
         }
     } finally {
         buyBtn.disabled = false;
