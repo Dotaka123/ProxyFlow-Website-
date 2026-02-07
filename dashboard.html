@@ -307,6 +307,116 @@ let user = JSON.parse(localStorage.getItem('user') || '{}');
 let prices = {};
 let GOLDEN_PKG_ID = 1;
 
+/* ================= CONVERSION AUTOMATIQUE EN MINUSCULES ================= */
+// Attendre que le DOM soit chargé
+window.addEventListener('DOMContentLoaded', function() {
+    const usernameInput = document.getElementById('username');
+    const passwordInput = document.getElementById('password');
+    
+    if (usernameInput) {
+        usernameInput.addEventListener('input', function(e) {
+            const cursorPos = e.target.selectionStart;
+            const oldValue = e.target.value;
+            const newValue = e.target.value.toLowerCase();
+            
+            if (oldValue !== newValue) {
+                e.target.value = newValue;
+                e.target.setSelectionRange(cursorPos, cursorPos);
+                
+                const lang = localStorage.getItem('lang') || 'fr';
+                const msg = lang === 'en' 
+                    ? 'Username converted to lowercase' 
+                    : 'Username converti en minuscules';
+                showCredentialsWarning(msg);
+            }
+        });
+    }
+    
+    if (passwordInput) {
+        passwordInput.addEventListener('input', function(e) {
+            const cursorPos = e.target.selectionStart;
+            const oldValue = e.target.value;
+            const newValue = e.target.value.toLowerCase();
+            
+            if (oldValue !== newValue) {
+                e.target.value = newValue;
+                e.target.setSelectionRange(cursorPos, cursorPos);
+                
+                const lang = localStorage.getItem('lang') || 'fr';
+                const msg = lang === 'en' 
+                    ? 'Password converted to lowercase' 
+                    : 'Password converti en minuscules';
+                showCredentialsWarning(msg);
+            }
+        });
+    }
+});
+
+/* ================= AFFICHER AVERTISSEMENT ================= */
+function showCredentialsWarning(message) {
+    const errorDiv = document.getElementById('credentialsError');
+    const errorMsg = document.getElementById('credentialsErrorMsg');
+    
+    if (!errorDiv || !errorMsg) return;
+    
+    errorMsg.textContent = message;
+    errorDiv.classList.remove('alert-danger');
+    errorDiv.classList.add('alert-warning');
+    errorDiv.style.display = 'block';
+    
+    // Masquer après 3 secondes
+    setTimeout(() => {
+        errorDiv.style.display = 'none';
+        errorDiv.classList.remove('alert-warning');
+        errorDiv.classList.add('alert-danger');
+    }, 3000);
+}
+
+/* ================= AFFICHER ERREUR ================= */
+function showCredentialsError(message) {
+    const errorDiv = document.getElementById('credentialsError');
+    const errorMsg = document.getElementById('credentialsErrorMsg');
+    
+    if (!errorDiv || !errorMsg) return;
+    
+    errorMsg.textContent = message;
+    errorDiv.classList.remove('alert-warning');
+    errorDiv.classList.add('alert-danger');
+    errorDiv.style.display = 'block';
+    
+    // Scroll vers l'erreur
+    errorDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+/* ================= VALIDATION CREDENTIALS ================= */
+function validateCredentials(username, password) {
+    const lang = localStorage.getItem('lang') || 'fr';
+    
+    // Pattern: seulement lettres minuscules, chiffres, underscore et tiret
+    const validPattern = /^[a-z0-9_-]*$/;
+    
+    if (username && !validPattern.test(username)) {
+        const msg = lang === 'en' 
+            ? 'Username must contain only lowercase letters, numbers, _ and -'
+            : 'Le username doit contenir uniquement des lettres minuscules, chiffres, _ et -';
+        showCredentialsError(msg);
+        return false;
+    }
+    
+    if (password && !validPattern.test(password)) {
+        const msg = lang === 'en'
+            ? 'Password must contain only lowercase letters, numbers, _ and -'
+            : 'Le password doit contenir uniquement des lettres minuscules, chiffres, _ et -';
+        showCredentialsError(msg);
+        return false;
+    }
+    
+    // Masquer l'erreur si tout est ok
+    const errorDiv = document.getElementById('credentialsError');
+    if (errorDiv) errorDiv.style.display = 'none';
+    return true;
+}
+
 /* ================= PRICES ================= */
 async function loadPrices() {
     prices = await apiCall('/api/prices');
@@ -417,6 +527,15 @@ document.getElementById('duration').addEventListener('change', e => {
 document.getElementById('buyProxyForm').addEventListener('submit', async (e) => {
     e.preventDefault();
 
+    const username = document.getElementById('username').value.trim();
+    const password = document.getElementById('password').value.trim();
+    const lang = localStorage.getItem('lang') || 'fr';
+
+    // Validation des credentials avant envoi
+    if (!validateCredentials(username, password)) {
+        return;
+    }
+
     const buyBtn = document.getElementById('buyBtn');
     const originalText = buyBtn.innerHTML;
     buyBtn.disabled = true;
@@ -428,8 +547,8 @@ document.getElementById('buyProxyForm').addEventListener('submit', async (e) => 
             package_id: document.getElementById('packageType').value,
             protocol: document.getElementById('protocol').value,
             duration: document.getElementById('duration').value,
-            username: document.getElementById('username').value || undefined,
-            password: document.getElementById('password').value || undefined
+            username: username || undefined,
+            password: password || undefined
         };
 
         const result = await apiCall('/api/create-proxy', {
@@ -441,15 +560,35 @@ document.getElementById('buyProxyForm').addEventListener('submit', async (e) => 
         localStorage.setItem('user', JSON.stringify(user));
         refreshProfile();
 
-        showToast(localStorage.getItem('lang') === 'en' ? 'Proxy purchased successfully!' : 'Proxy acheté avec succès!', 'success');
+        showToast(lang === 'en' ? 'Proxy purchased successfully!' : 'Proxy acheté avec succès!', 'success');
+        
+        // Réinitialiser le formulaire et masquer les erreurs
         document.getElementById('buyProxyForm').reset();
         document.getElementById('priceInfo').style.display = 'none';
+        const errorDiv = document.getElementById('credentialsError');
+        if (errorDiv) errorDiv.style.display = 'none';
 
         await loadMyProxies();
         await loadTransactions();
 
     } catch (error) {
-        showToast(error.message || 'Error', 'error');
+        // Gérer les erreurs spécifiques
+        const errorMessage = error.message || '';
+        
+        // Vérifier si c'est une erreur de credentials déjà utilisés
+        if (errorMessage.toLowerCase().includes('already in use') || 
+            errorMessage.toLowerCase().includes('déjà utilisé') ||
+            errorMessage.toLowerCase().includes('already exists') ||
+            errorMessage.toLowerCase().includes('duplicate') ||
+            errorMessage.toLowerCase().includes('exist')) {
+            
+            const msg = lang === 'en'
+                ? 'These credentials are already in use. Please choose a different username/password.'
+                : 'Ces identifiants sont déjà utilisés. Veuillez choisir un username/password différent.';
+            showCredentialsError(msg);
+        } else {
+            showToast(errorMessage || 'Error', 'error');
+        }
     } finally {
         buyBtn.disabled = false;
         buyBtn.innerHTML = originalText;
