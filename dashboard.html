@@ -187,16 +187,18 @@
                             </select>
                         </div>
 
-                        <div class="row g-2 mb-4">
-                            <div class="col-6">
-                                <label class="form-label small">Username</label>
-                                <input type="text" id="username" class="form-control form-control-sm" placeholder="Auto">
-                            </div>
-                            <div class="col-6">
-                                <label class="form-label small">Password</label>
-                                <input type="text" id="password" class="form-control form-control-sm" placeholder="Auto">
-                            </div>
-                        </div>
+<div class="row g-2 mb-4">
+    <div class="col-6">
+        <label class="form-label small">Username <span class="text-muted">(minuscules)</span></label>
+        <input type="text" id="username" class="form-control form-control-sm" placeholder="Auto" autocomplete="off">
+        <small class="text-muted" style="font-size: 0.75rem;">Lettres minuscules et chiffres uniquement</small>
+    </div>
+    <div class="col-6">
+        <label class="form-label small">Password <span class="text-muted">(minuscules)</span></label>
+        <input type="text" id="password" class="form-control form-control-sm" placeholder="Auto" autocomplete="off">
+        <small class="text-muted" style="font-size: 0.75rem;">Lettres minuscules et chiffres uniquement</small>
+    </div>
+</div>
 
                         <div id="priceInfo" class="alert alert-info py-2 text-center mb-4" style="display: none;">
                             <span class="fw-bold">Prix: $<span id="priceAmount">0.00</span></span>
