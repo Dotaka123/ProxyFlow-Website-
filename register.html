@@ -32,10 +32,10 @@
             <div class="col-md-6 d-flex flex-column align-items-center">
 
                 <div class="nav-utils mb-4">
-                    <button class="util-btn" onclick="toggleLang()" id="langBtn">
+                    <button type="button" class="util-btn" onclick="toggleLang()" id="langBtn">
                         <span id="langIcon">🇫🇷</span>
                     </button>
-                    <button class="util-btn" onclick="toggleTheme()" id="themeBtn">
+                    <button type="button" class="util-btn" onclick="toggleTheme()" id="themeBtn">
                         <i id="themeIcon" class="fas fa-moon"></i>
                     </button>
                 </div>
@@ -93,36 +93,36 @@
     <script src="js/notifications.js"></script>
     <script src="js/theme-lang.js"></script>
     <script>
-        document.getElementById('registerForm').addEventListener('submit', async (e) => {
+        document.getElementById('registerForm').addEventListener('submit', function(e) {
             e.preventDefault();
             
-            const email = document.getElementById('email').value;
-            const password = document.getElementById('password').value;
-            const confirmPassword = document.getElementById('confirmPassword').value;
+            var email = document.getElementById('email').value;
+            var password = document.getElementById('password').value;
+            var confirmPassword = document.getElementById('confirmPassword').value;
 
             if (password !== confirmPassword) {
                 showToast(localStorage.getItem('lang') === 'en' ? 'Passwords do not match' : 'Les mots de passe ne correspondent pas', 'error');
                 return;
             }
 
-            try {
-                const data = await apiCall('/api/auth/register', {
-                    method: 'POST',
-                    body: JSON.stringify({ email, password })
-                });
+            apiCall('/api/auth/register', {
+                method: 'POST',
+                body: JSON.stringify({ email: email, password: password })
+            })
+            .then(function(data) {
 
                 showToast(localStorage.getItem('lang') === 'en' ? 'Account created successfully!' : 'Compte créé avec succès!', 'success');
                 
                 localStorage.setItem('token', data.token);
                 localStorage.setItem('user', JSON.stringify(data.user));
                 
-                setTimeout(() => {
+                setTimeout(function() {
                     window.location.href = 'dashboard.html';
                 }, 1500);
-
-            } catch (error) {
+            })
+            .catch(function(error) {
                 showToast(error.message || 'Error', 'error');
-            }
+            });
         });
     </script>
         <script src="js/tawk.js"></script>
